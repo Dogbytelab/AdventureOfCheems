@@ -34,7 +34,7 @@ export function useCreateNFTReservation() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (reservation: { userId: number; nftType: string; price: number; txHash: string }) => {
+    mutationFn: async (reservation: { userId: string; nftType: string; price: number; txHash: string }) => {
       const response = await apiRequest("POST", "/api/nft-reservations", reservation);
       return response.json();
     },

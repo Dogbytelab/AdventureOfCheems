@@ -27,19 +27,19 @@ export interface IStorage {
   incrementInviteCount(referralCode: string): Promise<void>;
   
   getAllTasks(): Promise<Task[]>;
-  getUserTasks(userId: number): Promise<UserTask[]>;
-  getUserTask(userId: number, taskId: number): Promise<UserTask | undefined>;
-  completeTask(userId: number, taskId: number): Promise<UserTask>;
+  getUserTasks(userId: string): Promise<UserTask[]>;
+  getUserTask(userId: string, taskId: string): Promise<UserTask | undefined>;
+  completeTask(userId: string, taskId: string): Promise<UserTask>;
   
   createNFTReservation(reservation: InsertNFTReservation): Promise<NFTReservation>;
-  getNFTReservations(userId: number): Promise<NFTReservation[]>;
+  getNFTReservations(userId: string): Promise<NFTReservation[]>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private tasks: Map<number, Task>;
-  private userTasks: Map<number, UserTask>;
-  private nftReservations: Map<number, NFTReservation>;
+  private users: Map<string, User>;
+  private tasks: Map<string, Task>;
+  private userTasks: Map<string, UserTask>;
+  private nftReservations: Map<string, NFTReservation>;
   
   private currentUserId: number;
   private currentTaskId: number;
@@ -90,8 +90,9 @@ export class MemStorage implements IStorage {
     ];
 
     defaultTasks.forEach(taskData => {
+      const taskId = this.currentTaskId++; 
       const task: Task = {
-        id: this.currentTaskId++,
+        id: taskId.toString(),
         name: taskData.name,
         description: taskData.description,
         platform: taskData.platform,

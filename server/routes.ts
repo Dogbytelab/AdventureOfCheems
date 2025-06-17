@@ -79,7 +79,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user tasks
   app.get("/api/user-tasks/:userId", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       const userTasks = await dataStorage.getUserTasks(userId);
       res.json(userTasks);
     } catch (error) {
