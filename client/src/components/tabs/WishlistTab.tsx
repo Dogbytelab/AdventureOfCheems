@@ -6,11 +6,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
   getCurrentSOLPrice,
+  connectSolanaWallet,
   connectPhantomWallet,
   sendSOLTransaction,
   NFT_PRICES,
   NFT_LIMITS,
   calculateSOLAmount,
+  detectAvailableWallets,
+  WalletType,
 } from "@/lib/solana";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -26,6 +29,8 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
   >({});
   const [walletConnected, setWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [walletName, setWalletName] = useState<string | null>(null);
+  const [availableWallets, setAvailableWallets] = useState<any[]>([]);
   const [nftSupply, setNftSupply] = useState<
     Record<string, { sold: number; remaining: number }>
   >({
@@ -36,7 +41,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
 
   const RECIPIENT_WALLET = "BmzAXDfy6rvSgj4BiZ7R8eEr83S2VpCMKVYwZ3EdgTnp";
 
-  // Fetch NFT supply data on component mount
+  // Fetch NFT supply data and detect wallets on component mount
   useEffect(() => {
     const fetchNFTSupply = async () => {
       try {
@@ -50,7 +55,19 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       }
     };
 
+    const detectWallets = () => {
+      const wallets = detectAvailableWallets();
+      setAvailableWallets(wallets);
+      console.log('Available wallets:', wallets.map(w => w.name));
+    };
+
     fetchNFTSupply();
+    detectWallets();
+    
+    // Check for wallet connections every 2 seconds
+    const walletCheckInterval = setInterval(detectWallets, 2000);
+    
+    return () => clearInterval(walletCheckInterval);
   }, []);
 
   const nftTypes = [
@@ -91,18 +108,19 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
 
   const handleConnectWallet = async () => {
     try {
-      const connection = await connectPhantomWallet();
+      const connection = await connectSolanaWallet();
       setWalletConnected(connection.connected);
       setWalletAddress(connection.publicKey);
+      setWalletName(connection.walletName);
 
       toast({
         title: "Wallet Connected",
-        description: `Connected to ${connection.publicKey.slice(0, 8)}...${connection.publicKey.slice(-8)}`,
+        description: `Connected to ${connection.walletName}: ${connection.publicKey.slice(0, 8)}...${connection.publicKey.slice(-8)}`,
       });
     } catch (error: any) {
       toast({
         title: "Connection Failed",
-        description: error.message || "Failed to connect to Phantom wallet",
+        description: error.message || "Failed to connect to Solana wallet",
         variant: "destructive",
       });
     }
@@ -248,12 +266,33 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
         </p>
 
         {!walletConnected ? (
-          <Button
-            onClick={handleConnectWallet}
-            className="bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent text-white font-bold py-3 px-8 retro-button mb-8"
-          >
-            Connect Phantom Wallet
-          </Button>
+          <div className="mb-8">
+            {availableWallets.length > 0 ? (
+              <div>
+                <Button
+                  onClick={handleConnectWallet}
+                  className="bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent text-white font-bold py-3 px-8 retro-button mb-4"
+                >
+                  Connect {availableWallets[0]?.name || 'Solana'} Wallet
+                </Button>
+                <div className="text-sm text-text-secondary">
+                  Detected wallets: {availableWallets.map(w => w.name).join(', ')}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <Button
+                  onClick={() => window.open('https://phantom.app/', '_blank')}
+                  className="bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent text-white font-bold py-3 px-8 retro-button mb-4"
+                >
+                  Install Solana Wallet
+                </Button>
+                <div className="text-sm text-text-secondary">
+                  No Solana wallet detected. Please install Phantom, Solflare, or Backpack.
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="mb-8">
             <div className="flex items-center justify-center gap-2 text-success">
@@ -265,7 +304,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                 />
               </svg>
               <span>
-                Wallet Connected: {walletAddress?.slice(0, 8)}...
+                {walletName} Connected: {walletAddress?.slice(0, 8)}...
                 {walletAddress?.slice(-8)}
               </span>
             </div>
@@ -345,7 +384,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                         : (nftSupply[nft.type]?.remaining || nft.totalSupply) <=
                             0
                           ? "SOLD OUT"
-                          : "Reserve with Phantom"}
+                          : `Reserve with ${walletName || 'Wallet'}`}
                   </Button>
                 </div>
               </CardContent>

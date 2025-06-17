@@ -34,7 +34,87 @@ const MAX_TRANSACTION_AGE_MINUTES = 15;
 // Use mainnet-beta for production
 const connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
 
-function isValidBase58TxHash(txHash: string): boolean {
+// Supported wallet types
+export enum WalletType {
+  PHANTOM = 'phantom',
+  SOLFLARE = 'solflare',
+  BACKPACK = 'backpack',
+  SOLLET = 'sollet',
+  UNKNOWN = 'unknown'
+}
+
+export interface WalletAdapter {
+  publicKey: PublicKey | null;
+  connected: boolean;
+  connect: () => Promise<void>;
+  disconnect: () => Promise<void>;
+  signAndSendTransaction: (transaction: any) => Promise<{ signature: string }>;
+  signTransaction?: (transaction: any) => Promise<any>;
+  signAllTransactions?: (transactions: any[]) => Promise<any[]>;
+}
+
+// Detect available Solana wallets
+export function detectAvailableWallets(): { type: WalletType; name: string; adapter: any }[] {
+  const wallets: { type: WalletType; name: string; adapter: any }[] = [];
+
+  if (typeof window !== 'undefined') {
+    const windowAny = window as any;
+
+    // Phantom
+    if (windowAny.solana && windowAny.solana.isPhantom) {
+      wallets.push({
+        type: WalletType.PHANTOM,
+        name: 'Phantom',
+        adapter: windowAny.solana
+      });
+    }
+
+    // Solflare
+    if (windowAny.solflare && windowAny.solflare.isSolflare) {
+      wallets.push({
+        type: WalletType.SOLFLARE,
+        name: 'Solflare',
+        adapter: windowAny.solflare
+      });
+    }
+
+    // Backpack
+    if (windowAny.backpack && windowAny.backpack.isBackpack) {
+      wallets.push({
+        type: WalletType.BACKPACK,
+        name: 'Backpack',
+        adapter: windowAny.backpack
+      });
+    }
+
+    // Sollet (Sollet.io)
+    if (windowAny.sollet) {
+      wallets.push({
+        type: WalletType.SOLLET,
+        name: 'Sollet',
+        adapter: windowAny.sollet
+      });
+    }
+  }
+
+  return wallets;
+}
+
+// Get the best available wallet (prioritize Phantom, then others)
+export function getBestAvailableWallet(): { type: WalletType; name: string; adapter: any } | null {
+  const wallets = detectAvailableWallets();
+
+  if (wallets.length === 0) return null;
+
+  // Prioritize Phantom
+  const phantom = wallets.find(w => w.type === WalletType.PHANTOM);
+  if (phantom) return phantom;
+
+  // Return first available wallet
+  return wallets[0];
+}
+
+export async function isValidBase58TxHash(txHash: string): Promise<boolean> {
   const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,88}$/;
   return base58Regex.test(txHash);
 }
@@ -72,7 +152,7 @@ export async function verifySolanaTransaction(
   expectedAmountUSD: number,
   nftType: string
 ): Promise<SolanaTransactionVerification> {
-  if (!isValidBase58TxHash(txHash)) {
+  if (!await isValidBase58TxHash(txHash)) {
     return {
       valid: false,
       error: "Invalid transaction hash format",
@@ -180,71 +260,128 @@ export function validateNFTLimits(nftType: string, currentCount: number): boolea
   return currentCount < limit;
 }
 
-// Connect to Phantom wallet
-export async function connectPhantomWallet(): Promise<{ publicKey: string; connected: boolean }> {
+// Connect to any available Solana wallet
+export async function connectSolanaWallet(): Promise<{ publicKey: string; connected: boolean; walletName: string }> {
   try {
-    const { solana } = window as any;
+    const wallet = getBestAvailableWallet();
     
-    if (!solana?.isPhantom) {
-      throw new Error('Phantom wallet not found. Please install Phantom wallet.');
+    if (!wallet) {
+      throw new Error('No Solana wallet found. Please install a supported wallet like Phantom, Solflare, or Backpack.');
     }
 
-    const response = await solana.connect();
+    console.log(`Connecting to ${wallet.name} wallet...`);
+    
+    let response;
+    
+    // Handle different wallet connection methods
+    if (wallet.type === WalletType.PHANTOM || wallet.type === WalletType.SOLFLARE) {
+      response = await wallet.adapter.connect();
+    } else if (wallet.type === WalletType.BACKPACK) {
+      response = await wallet.adapter.connect();
+    } else {
+      // Generic connection attempt
+      response = await wallet.adapter.connect();
+    }
+    
     return {
       publicKey: response.publicKey.toString(),
-      connected: true
+      connected: true,
+      walletName: wallet.name
     };
   } catch (error) {
-    console.error('Failed to connect to Phantom wallet:', error);
+    console.error('Failed to connect to Solana wallet:', error);
     throw error;
   }
 }
 
-// Send SOL transaction via Phantom
+// Legacy function for backward compatibility
+export async function connectPhantomWallet(): Promise<{ publicKey: string; connected: boolean }> {
+  const result = await connectSolanaWallet();
+  return {
+    publicKey: result.publicKey,
+    connected: result.connected
+  };
+}
+
+// Send SOL transaction via any connected Solana wallet
 export async function sendSOLTransaction(
   recipientAddress: string,
   amountSOL: number
 ): Promise<string> {
   try {
-    const { solana } = window as any;
+    const wallet = getBestAvailableWallet();
     
-    if (!solana?.isPhantom) {
-      throw new Error('Phantom wallet not found. Please install Phantom wallet.');
+    if (!wallet) {
+      throw new Error('No Solana wallet found. Please install a supported wallet.');
     }
 
-    if (!solana.isConnected) {
-      throw new Error('Phantom wallet is not connected. Please connect your wallet first.');
+    if (!wallet.adapter.connected) {
+      throw new Error(`${wallet.name} wallet is not connected. Please connect your wallet first.`);
     }
 
-    console.log(`Initiating transaction: ${amountSOL.toFixed(4)} SOL to ${recipientAddress}`);
+    console.log(`Initiating transaction: ${amountSOL.toFixed(4)} SOL to ${recipientAddress} via ${wallet.name}`);
 
-    // Create transaction
-    const transaction = await solana.request({
-      method: "signAndSendTransaction",
-      params: {
-        message: `NFT Reservation Payment - ${amountSOL.toFixed(4)} SOL`,
-        transaction: {
+    let transaction;
+    const lamports = Math.floor(amountSOL * LAMPORTS_PER_SOL);
+
+    try {
+      // Try standard method for most wallets
+      if (wallet.type === WalletType.PHANTOM) {
+        transaction = await wallet.adapter.request({
+          method: "signAndSendTransaction",
+          params: {
+            message: `NFT Reservation Payment - ${amountSOL.toFixed(4)} SOL`,
+            transaction: {
+              to: recipientAddress,
+              value: lamports,
+            }
+          }
+        });
+      } else if (wallet.type === WalletType.SOLFLARE) {
+        // Solflare specific transaction format
+        transaction = await wallet.adapter.signAndSendTransaction({
+          to: new PublicKey(recipientAddress),
+          value: lamports,
+          message: `NFT Reservation Payment - ${amountSOL.toFixed(4)} SOL`
+        });
+      } else if (wallet.type === WalletType.BACKPACK) {
+        // Backpack specific transaction format
+        transaction = await wallet.adapter.signAndSendTransaction({
+          instructions: [{
+            programId: new PublicKey("11111111111111111111111111111112"), // System program
+            keys: [
+              { pubkey: wallet.adapter.publicKey, isSigner: true, isWritable: true },
+              { pubkey: new PublicKey(recipientAddress), isSigner: false, isWritable: true }
+            ],
+            data: Buffer.from([2, 0, 0, 0, ...new Uint8Array(new BigUint64Array([BigInt(lamports)]).buffer)])
+          }]
+        });
+      } else {
+        // Generic approach for other wallets
+        transaction = await wallet.adapter.signAndSendTransaction({
           to: recipientAddress,
-          value: Math.floor(amountSOL * LAMPORTS_PER_SOL), // Convert to lamports
-        }
+          value: lamports,
+        });
       }
-    }).catch((error: any) => {
-      console.error('Phantom transaction request failed:', error);
-      if (error.message?.includes('User rejected')) {
+    } catch (error: any) {
+      console.error(`${wallet.name} transaction request failed:`, error);
+      if (error.message?.includes('User rejected') || error.message?.includes('cancelled')) {
         throw new Error('Transaction was cancelled by user');
       }
-      if (error.message?.includes('Insufficient funds')) {
+      if (error.message?.includes('Insufficient funds') || error.message?.includes('insufficient')) {
         throw new Error('Insufficient SOL balance in wallet');
       }
-      throw new Error('Transaction failed: ' + (error.message || 'Unknown error'));
-    });
+      throw new Error(`Transaction failed: ${error.message || 'Unknown error'}`);
+    }
 
-    if (!transaction?.signature) {
+    const signature = transaction?.signature || transaction?.transactionSignature || transaction;
+
+    if (!signature) {
       throw new Error('Transaction failed: No signature returned');
     }
 
-    console.log('Transaction successful:', transaction.signature);
-    return transaction.signature;
+    console.log(`Transaction successful via ${wallet.name}:`, signature);
+    return signature;
   } catch (error) {
     console.error('Transaction failed:', error);
     throw error;
