@@ -1,138 +1,139 @@
-import type { Express } from "express";
-import { createServer, type Server } from "http";
-import { nestedFirebaseStorage } from "./nestedFirebaseStorage";
-import { insertUserSchema, insertUserTaskSchema, insertNFTReservationSchema } from "@shared/schema";
+import { Router, Request, Response } from "express";
 import { z } from "zod";
+import { storage } from "./storage";
 
-// Use nested Firebase Realtime Database structure
-const dataStorage = nestedFirebaseStorage;
+const router = Router();
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // Get user by Firebase UID
-  app.get("/api/users/:uid", async (req, res) => {
-    try {
-      const user = await dataStorage.getUserByUid(req.params.uid);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
+// Users endpoints
+router.get("/users", async (req: Request, res: Response) => {
+  try {
+    const users = await storage.getAllUsers();
+    res.json(users);
+  } catch (error) {
+    console.error("Error getting users:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.get("/users/:uid", async (req: Request, res: Response) => {
+  try {
+    const user = await storage.getUserByUid(req.params.uid);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
-  });
+    res.json(user);
+  } catch (error) {
+    console.error("Error getting user:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
-  // Create new user
-  app.post("/api/users", async (req, res) => {
-    try {
-      const validatedData = insertUserSchema.parse(req.body);
-      
-      // Check if user already exists
-      const existingUser = await dataStorage.getUserByUid(validatedData.uid);
-      if (existingUser) {
-        return res.status(409).json({ message: "User already exists" });
-      }
+const createUserSchema = z.object({
+  email: z.string().email(),
+  inviteCode: z.string().optional().nullable(),
+});
 
-      // Generate unique referral code
-      const referralCode = await dataStorage.generateReferralCode();
-      
-      // Clean up invite code - convert empty string to null
-      const inviteCode = validatedData.inviteCode && validatedData.inviteCode.trim() 
-        ? validatedData.inviteCode.trim() 
-        : null;
-      
-      const user = await dataStorage.createUser({
-        ...validatedData,
-        referralCode,
-        inviteCode,
-      });
-      
-      // If user used an invite code, update the referrer's invite count
-      if (inviteCode) {
-        try {
-          await dataStorage.incrementInviteCount(inviteCode);
-        } catch (error) {
-          console.error("Error incrementing invite count:", error);
-          // Don't fail user creation if invite code increment fails
-        }
-      }
-      
-      res.status(201).json(user);
-    } catch (error) {
-      console.error("Error creating user:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Internal server error", error: error.message });
+router.post("/users", async (req: Request, res: Response) => {
+  try {
+    const validation = createUserSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ message: "Invalid input", errors: validation.error.errors });
     }
-  });
 
-  // Get all tasks
-  app.get("/api/tasks", async (req, res) => {
-    try {
-      const tasks = await dataStorage.getAllTasks();
-      res.json(tasks);
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
+    const { email, inviteCode } = validation.data;
+
+    // Generate referral code
+    const referralCode = await storage.generateReferralCode();
+
+    const user = await storage.createUser({
+      uid: req.body.uid,
+      email,
+      referralCode,
+      inviteCode,
+    });
+
+    // If user used an invite code, increment the referrer's invite count
+    if (inviteCode) {
+      await storage.incrementInviteCount(inviteCode);
     }
-  });
 
-  // Get user tasks
-  app.get("/api/user-tasks/:userId", async (req, res) => {
-    try {
-      const userId = req.params.userId;
-      const userTasks = await dataStorage.getUserTasks(userId);
-      res.json(userTasks);
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
+    res.status(201).json(user);
+  } catch (error) {
+    console.error("Error creating user:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Tasks endpoints
+router.get("/tasks", async (req: Request, res: Response) => {
+  try {
+    const tasks = await storage.getAllTasks();
+    res.json(tasks);
+  } catch (error) {
+    console.error("Error getting tasks:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// User tasks endpoints - using UID instead of ID
+router.get("/user-tasks/:userUid", async (req: Request, res: Response) => {
+  try {
+    const userTasks = await storage.getUserTasks(req.params.userUid);
+    res.json(userTasks);
+  } catch (error) {
+    console.error("Error getting user tasks:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/user-tasks/:userUid/:taskId/complete", async (req: Request, res: Response) => {
+  try {
+    const userTask = await storage.completeTask(req.params.userUid, req.params.taskId);
+    res.json(userTask);
+  } catch (error) {
+    console.error("Error completing task:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// NFT Reservations endpoints - using UID instead of ID
+router.get("/nft-reservations/:userUid", async (req: Request, res: Response) => {
+  try {
+    const reservations = await storage.getNFTReservations(req.params.userUid);
+    res.json(reservations);
+  } catch (error) {
+    console.error("Error getting NFT reservations:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+const createReservationSchema = z.object({
+  nftType: z.string(),
+  price: z.number(),
+  txHash: z.string(),
+});
+
+router.post("/nft-reservations/:userUid", async (req: Request, res: Response) => {
+  try {
+    const validation = createReservationSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ message: "Invalid input", errors: validation.error.errors });
     }
-  });
 
-  // Complete a task
-  app.post("/api/user-tasks", async (req, res) => {
-    try {
-      const validatedData = insertUserTaskSchema.parse(req.body);
-      
-      // Check if task is already completed
-      const existingUserTask = await dataStorage.getUserTask(validatedData.userId, validatedData.taskId);
-      if (existingUserTask && existingUserTask.completed) {
-        return res.status(409).json({ message: "Task already completed" });
-      }
-      
-      const userTask = await dataStorage.completeTask(validatedData.userId, validatedData.taskId);
-      res.status(201).json(userTask);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
+    const { nftType, price, txHash } = validation.data;
 
-  // Create NFT reservation
-  app.post("/api/nft-reservations", async (req, res) => {
-    try {
-      const validatedData = insertNFTReservationSchema.parse(req.body);
-      const reservation = await dataStorage.createNFTReservation(validatedData);
-      res.status(201).json(reservation);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
+    const reservation = await storage.createNFTReservation({
+      userId: req.params.userUid,
+      nftType,
+      price,
+      txHash,
+    });
 
-  // Get NFT reservations for user
-  app.get("/api/nft-reservations/:userId", async (req, res) => {
-    try {
-      const userId = req.params.userId;
-      const reservations = await dataStorage.getNFTReservations(userId);
-      res.json(reservations);
-    } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
+    res.status(201).json(reservation);
+  } catch (error) {
+    console.error("Error creating NFT reservation:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
-  const httpServer = createServer(app);
-  return httpServer;
-}
+export { router };

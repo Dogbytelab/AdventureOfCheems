@@ -23,6 +23,8 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
       
       if (snapshot.exists()) {
         const userData = snapshot.val();
+        console.log('Raw user data from Firebase:', userData);
+        
         return {
           id: uid,
           uid: uid,
@@ -210,8 +212,7 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
               userId,
               taskId,
               completed: true,
-              completedAt: new Date(),
-              points: 1000
+              completedAt: new Date()
             });
           }
         });
@@ -237,8 +238,7 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
           userId,
           taskId,
           completed: true,
-          completedAt: new Date(),
-          points: 1000
+          completedAt: new Date()
         };
       }
       return undefined;
@@ -273,8 +273,7 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
         userId: userUid,
         taskId: taskId,
         completed: true,
-        completedAt: new Date(),
-        points: points
+        completedAt: new Date()
       };
     } catch (error) {
       console.error('Error completing task:', error);

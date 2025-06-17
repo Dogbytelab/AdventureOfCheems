@@ -17,9 +17,20 @@ export default function DashboardTab() {
   const { data: user } = useQuery<User>({
     queryKey: ["/api/users", firebaseUser?.uid],
     enabled: !!firebaseUser?.uid,
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/users/${firebaseUser?.uid}`);
+      return response.json();
+    }
   });
 
-  const { data: nftReservations = [] } = useNFTReservations(user?.id || "");
+  const { data: nftReservations = [] } = useQuery({
+    queryKey: ["/api/nft-reservations", user?.uid],
+    enabled: !!user?.uid,
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/nft-reservations/${user?.uid}`);
+      return response.json();
+    }
+  });
 
   const handleCopyReferralCode = async () => {
     if (user?.referralCode) {

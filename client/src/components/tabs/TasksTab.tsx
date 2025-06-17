@@ -3,53 +3,75 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
-import { useTasks, useUserTasks, useCompleteTask } from "@/hooks/useFirestore";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
-import type { User } from "@shared/schema";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import type { User, Task, UserTask } from "@shared/schema";
 
 export default function TasksTab() {
   const { firebaseUser } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const { data: user } = useQuery<User>({
     queryKey: ["/api/users", firebaseUser?.uid],
     enabled: !!firebaseUser?.uid,
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/users/${firebaseUser?.uid}`);
+      return response.json();
+    }
   });
 
-  const { data: tasks = [] } = useTasks();
-  const { data: userTasks = [] } = useUserTasks(user?.id || 0);
-  const completeTaskMutation = useCompleteTask();
+  const { data: tasks = [] } = useQuery<Task[]>({
+    queryKey: ["/api/tasks"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/tasks");
+      return response.json();
+    }
+  });
 
-  const [completedTasks, setCompletedTasks] = useState<Set<number>>(new Set());
+  const { data: userTasks = [] } = useQuery<UserTask[]>({
+    queryKey: ["/api/user-tasks", user?.uid],
+    enabled: !!user?.uid,
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/user-tasks/${user?.uid}`);
+      return response.json();
+    }
+  });
 
-  const handleOpenTask = (taskId: number, url: string) => {
+  const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
+
+  const handleOpenTask = (taskId: string, url: string) => {
     // Open the task URL in a new tab
     window.open(url, "_blank");
     // Mark task as opened
     setCompletedTasks(prev => new Set([...prev, taskId]));
   };
 
-  const handleClaimPoints = async (taskId: number) => {
+  const handleClaimPoints = async (taskId: string) => {
     if (!user) return;
 
     try {
-      await completeTaskMutation.mutateAsync({
-        userId: user.id,
-        taskId,
-      });
-      
-      toast({
-        title: "Points Claimed!",
-        description: "You've earned 1000 AOC Points!",
-      });
-      
-      // Remove from completed tasks set
-      setCompletedTasks(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(taskId);
-        return newSet;
-      });
+      const response = await apiRequest("POST", `/api/user-tasks/${user.uid}/${taskId}/complete`);
+      if (response.ok) {
+        toast({
+          title: "Points Claimed!",
+          description: "You've earned 1000 AOC Points!",
+        });
+        
+        // Invalidate queries to refresh data
+        queryClient.invalidateQueries({ queryKey: ["/api/users", user.uid] });
+        queryClient.invalidateQueries({ queryKey: ["/api/user-tasks", user.uid] });
+        
+        // Remove from completed tasks set
+        setCompletedTasks(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(taskId);
+          return newSet;
+        });
+      } else {
+        throw new Error("Failed to claim points");
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -59,7 +81,7 @@ export default function TasksTab() {
     }
   };
 
-  const isTaskCompleted = (taskId: number) => {
+  const isTaskCompleted = (taskId: string) => {
     return userTasks.some(ut => ut.taskId === taskId && ut.completed);
   };
 
@@ -137,10 +159,9 @@ export default function TasksTab() {
                       ) : completedTasks.has(task.id) ? (
                         <Button
                           onClick={() => handleClaimPoints(task.id)}
-                          disabled={completeTaskMutation.isPending}
                           className="bg-green-600 hover:bg-green-700 text-white px-6 py-2"
                         >
-                          {completeTaskMutation.isPending ? "Claiming..." : "Claim Points"}
+                          Claim Points
                         </Button>
                       ) : (
                         <Button
