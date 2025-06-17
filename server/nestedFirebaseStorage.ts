@@ -426,7 +426,6 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
 
   async getNFTReservations(userId: string): Promise<NFTReservation[]> {
     try {
-      console.log(`Getting NFT reservations for user: ${userId}`);
       const userReservations: NFTReservation[] = [];
       
       // Check new nft_reservations structure first
@@ -435,11 +434,9 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
       
       if (reservationsSnapshot.exists()) {
         const reservationsData = reservationsSnapshot.val();
-        console.log('Found nft_reservations data:', Object.keys(reservationsData));
         
         Object.entries(reservationsData).forEach(([id, data]: [string, any]) => {
           if (data.userId === userId) {
-            console.log(`Found reservation for user ${userId}:`, data);
             userReservations.push({
               id: id,
               userId: data.userId,
@@ -454,8 +451,6 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
             });
           }
         });
-      } else {
-        console.log('No nft_reservations data found');
       }
       
       // Also check legacy wishlist structure for backward compatibility
@@ -464,17 +459,15 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
       
       if (wishlistSnapshot.exists()) {
         const wishlist = wishlistSnapshot.val();
-        console.log(`Found wishlist for user ${userId}:`, wishlist);
         if (wishlist.type && wishlist.txHash) {
           // Check if this wishlist reservation is not already in the new structure
           const existingReservation = userReservations.find(r => r.txHash === wishlist.txHash);
           if (!existingReservation) {
-            console.log(`Adding wishlist reservation for user ${userId}`);
             userReservations.push({
               id: `${userId}_wishlist`,
               userId: userId,
               nftType: wishlist.type,
-              price: wishlist.amount || 0,
+              price: 1, // Always show 1 NFT for wishlist reservations
               txHash: wishlist.txHash,
               walletAddress: '',
               solAmount: '0',
@@ -484,11 +477,8 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
             });
           }
         }
-      } else {
-        console.log(`No wishlist found for user ${userId}`);
       }
       
-      console.log(`Returning ${userReservations.length} reservations for user ${userId}`);
       return userReservations;
     } catch (error) {
       console.error('Error getting NFT reservations:', error);
