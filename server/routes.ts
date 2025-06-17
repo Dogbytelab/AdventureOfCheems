@@ -5,8 +5,8 @@ import { storage } from "./storage";
 import { insertUserSchema, insertUserTaskSchema, insertNFTReservationSchema } from "@shared/schema";
 import { z } from "zod";
 
-// Use memory storage temporarily while fixing Firebase permissions
-const dataStorage = storage;
+// Use Firebase Realtime Database for persistent storage
+const dataStorage = firebaseStorage;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get user by Firebase UID
@@ -25,9 +25,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new user
   app.post("/api/users", async (req, res) => {
     try {
-      console.log("Creating user with data:", req.body);
       const validatedData = insertUserSchema.parse(req.body);
-      console.log("Validated data:", validatedData);
       
       // Check if user already exists
       const existingUser = await dataStorage.getUserByUid(validatedData.uid);
@@ -37,7 +35,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate unique referral code
       const referralCode = await dataStorage.generateReferralCode();
-      console.log("Generated referral code:", referralCode);
       
       // Clean up invite code - convert empty string to null
       const inviteCode = validatedData.inviteCode && validatedData.inviteCode.trim() 
@@ -49,7 +46,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         referralCode,
         inviteCode,
       });
-      console.log("Created user:", user);
       
       // If user used an invite code, update the referrer's invite count
       if (inviteCode) {
