@@ -41,7 +41,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
 
   const RECIPIENT_WALLET = "BmzAXDfy6rvSgj4BiZ7R8eEr83S2VpCMKVYwZ3EdgTnp";
 
-  // Fetch NFT supply data and detect wallets on component mount
+  // Fetch NFT supply data on component mount
   useEffect(() => {
     const fetchNFTSupply = async () => {
       try {
@@ -55,22 +55,11 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       }
     };
 
-    const detectWallets = () => {
-      const wallets = detectAvailableWallets();
-      setAvailableWallets(wallets);
-      console.log(
-        "Available wallets:",
-        wallets.map((w) => w.name),
-      );
-    };
-
     fetchNFTSupply();
-    detectWallets();
 
-    // Check for wallet connections every 2 seconds
-    const walletCheckInterval = setInterval(detectWallets, 2000);
-
-    return () => clearInterval(walletCheckInterval);
+    // Only detect wallets once on mount, not continuously
+    const initialWallets = detectAvailableWallets();
+    setAvailableWallets(initialWallets);
   }, []);
 
   const nftTypes = [
@@ -111,6 +100,19 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
 
   const handleConnectWallet = async () => {
     try {
+      // Re-check for available wallets before connecting
+      const wallets = detectAvailableWallets();
+      setAvailableWallets(wallets);
+      
+      if (wallets.length === 0) {
+        toast({
+          title: "No Wallet Found",
+          description: "Please install a Solana wallet (Phantom, Solflare, or Backpack) and refresh the page.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const connection = await connectSolanaWallet();
       setWalletConnected(connection.connected);
       setWalletAddress(connection.publicKey);
@@ -121,9 +123,22 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
         description: `Connected to ${connection.walletName}: ${connection.publicKey.slice(0, 8)}...${connection.publicKey.slice(-8)}`,
       });
     } catch (error: any) {
+      console.error("Wallet connection error:", error);
+      
+      let errorMessage = "Failed to connect to Solana wallet";
+      if (error.message?.includes("User rejected")) {
+        errorMessage = "Connection was cancelled by user";
+      } else if (error.message?.includes("not found")) {
+        errorMessage = "Wallet not found. Please install a Solana wallet extension.";
+      } else if (error.message?.includes("already connected")) {
+        errorMessage = "Wallet is already connected";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Connection Failed",
-        description: error.message || "Failed to connect to Solana wallet",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -151,21 +166,52 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
     setProcessingStates((prev) => ({ ...prev, [nftType]: true }));
 
     try {
-      // Get current SOL price
-      const solPrice = await getCurrentSOLPrice().catch((error) => {
+      // Verify wallet is still connected
+      if (!walletConnected || !walletAddress) {
+        throw new Error("Wallet not connected. Please reconnect your wallet.");
+      }
+
+      // Get current SOL price with retry logic
+      let solPrice;
+      try {
+        solPrice = await getCurrentSOLPrice();
+        if (!solPrice || solPrice <= 0) {
+          throw new Error("Invalid SOL price received");
+        }
+      } catch (error) {
         console.error("Failed to get SOL price:", error);
-        throw new Error("Failed to get current SOL price. Please try again.");
-      });
+        throw new Error("Failed to get current SOL price. Please try again in a moment.");
+      }
 
       const solAmount = calculateSOLAmount(price, solPrice);
+
+      // Validate SOL amount
+      if (solAmount <= 0 || !isFinite(solAmount)) {
+        throw new Error("Invalid transaction amount calculated");
+      }
 
       toast({
         title: "Transaction Initiated",
         description: `Please approve the transaction for ${solAmount.toFixed(4)} SOL ($${price} USD)`,
       });
 
-      // Send transaction via Phantom
-      const txHash = await sendSOLTransaction(RECIPIENT_WALLET, solAmount);
+      // Send transaction via wallet
+      let txHash;
+      try {
+        txHash = await sendSOLTransaction(RECIPIENT_WALLET, solAmount);
+        if (!txHash || typeof txHash !== 'string') {
+          throw new Error("Invalid transaction hash received");
+        }
+      } catch (error: any) {
+        console.error("Transaction sending failed:", error);
+        if (error.message?.includes("User rejected")) {
+          throw new Error("Transaction was cancelled by user");
+        } else if (error.message?.includes("Insufficient funds")) {
+          throw new Error("Insufficient SOL balance in your wallet");
+        } else {
+          throw new Error(`Transaction failed: ${error.message || "Unknown error"}`);
+        }
+      }
 
       // Verify transaction on backend before creating reservation
       const verificationResponse = await fetch("/api/verify-transaction", {

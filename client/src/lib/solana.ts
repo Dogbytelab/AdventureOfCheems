@@ -50,31 +50,43 @@ export function detectAvailableWallets(): WalletType[] {
   const wallets: WalletType[] = [];
 
   if (typeof window !== 'undefined') {
-    // Check for Phantom
-    if (window.solana && window.solana.isPhantom) {
-      wallets.push({
-        name: 'Phantom',
-        adapter: window.solana,
-        readyState: 'Installed'
-      });
+    // Check for Phantom with retry logic
+    try {
+      if (window.solana && window.solana.isPhantom) {
+        wallets.push({
+          name: 'Phantom',
+          adapter: window.solana,
+          readyState: 'Installed'
+        });
+      }
+    } catch (error) {
+      console.warn('Error checking Phantom wallet:', error);
     }
 
     // Check for Solflare
-    if (window.solflare && window.solflare.isSolflare) {
-      wallets.push({
-        name: 'Solflare',
-        adapter: window.solflare,
-        readyState: 'Installed'
-      });
+    try {
+      if (window.solflare && window.solflare.isSolflare) {
+        wallets.push({
+          name: 'Solflare',
+          adapter: window.solflare,
+          readyState: 'Installed'
+        });
+      }
+    } catch (error) {
+      console.warn('Error checking Solflare wallet:', error);
     }
 
     // Check for Backpack
-    if (window.backpack && window.backpack.isBackpack) {
-      wallets.push({
-        name: 'Backpack',
-        adapter: window.backpack,
-        readyState: 'Installed'
-      });
+    try {
+      if (window.backpack && window.backpack.isBackpack) {
+        wallets.push({
+          name: 'Backpack',
+          adapter: window.backpack,
+          readyState: 'Installed'
+        });
+      }
+    } catch (error) {
+      console.warn('Error checking Backpack wallet:', error);
     }
   }
 
