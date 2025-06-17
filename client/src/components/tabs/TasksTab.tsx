@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,11 +21,17 @@ export default function TasksTab() {
   const { data: userTasks = [] } = useUserTasks(user?.id || 0);
   const completeTaskMutation = useCompleteTask();
 
-  const handleCompleteTask = async (taskId: number, url: string) => {
-    if (!user) return;
+  const [completedTasks, setCompletedTasks] = useState<Set<number>>(new Set());
 
+  const handleOpenTask = (taskId: number, url: string) => {
     // Open the task URL in a new tab
     window.open(url, "_blank");
+    // Mark task as opened
+    setCompletedTasks(prev => new Set([...prev, taskId]));
+  };
+
+  const handleClaimPoints = async (taskId: number) => {
+    if (!user) return;
 
     try {
       await completeTaskMutation.mutateAsync({
@@ -33,13 +40,20 @@ export default function TasksTab() {
       });
       
       toast({
-        title: "Task Completed!",
+        title: "Points Claimed!",
         description: "You've earned 1000 AOC Points!",
+      });
+      
+      // Remove from completed tasks set
+      setCompletedTasks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(taskId);
+        return newSet;
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to complete task. Please try again.",
+        description: "Failed to claim points. Please try again.",
         variant: "destructive",
       });
     }
@@ -114,18 +128,26 @@ export default function TasksTab() {
                     <div className="flex items-center space-x-4">
                       <span className="text-success font-bold">+{task.points} AOCp</span>
                       {completed ? (
-                        <div className="text-success">
+                        <div className="text-success flex items-center gap-2">
                           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
+                          <span className="text-sm">Completed</span>
                         </div>
+                      ) : completedTasks.has(task.id) ? (
+                        <Button
+                          onClick={() => handleClaimPoints(task.id)}
+                          disabled={completeTaskMutation.isPending}
+                          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2"
+                        >
+                          {completeTaskMutation.isPending ? "Claiming..." : "Claim Points"}
+                        </Button>
                       ) : (
                         <Button
-                          onClick={() => handleCompleteTask(task.id, task.url)}
-                          disabled={completeTaskMutation.isPending}
+                          onClick={() => handleOpenTask(task.id, task.url)}
                           className="bg-accent hover:bg-accent/80 text-white px-6 py-2"
                         >
-                          {completeTaskMutation.isPending ? "Processing..." : "Complete"}
+                          Complete Task
                         </Button>
                       )}
                     </div>

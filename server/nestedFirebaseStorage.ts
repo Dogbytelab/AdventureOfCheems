@@ -251,13 +251,19 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
   async completeTask(userUid: string, taskId: string): Promise<UserTask> {
     try {
       const taskField = this.getTaskFieldName(taskId);
-      const currentPointsRef = ref(rtdb, `users/${userUid}/aocPoints/total`);
-      const currentPointsSnapshot = await get(currentPointsRef);
-      const currentPoints = currentPointsSnapshot.exists() ? currentPointsSnapshot.val() : 0;
+      const userRef = ref(rtdb, `users/${userUid}`);
+      const userSnapshot = await get(userRef);
       
+      if (!userSnapshot.exists()) {
+        throw new Error('User not found');
+      }
+      
+      const userData = userSnapshot.val();
+      const currentPoints = userData.aocPoints?.total || 0;
       const points = 1000;
       
-      await update(ref(rtdb, `users/${userUid}`), {
+      // Update both task completion and points
+      await update(userRef, {
         [`tasks/${taskField}`]: true,
         'aocPoints/total': currentPoints + points
       });

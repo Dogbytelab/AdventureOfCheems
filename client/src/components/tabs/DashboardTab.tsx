@@ -78,7 +78,7 @@ export default function DashboardTab() {
             <CardContent className="pt-6">
               <h3 className="text-xl font-retro text-accent mb-4">AOC POINTS</h3>
               <div className="text-4xl font-bold text-success mb-2">
-                {user?.aocPoints?.toLocaleString() || "0"}
+                {(user?.aocPoints || 0).toLocaleString()}
               </div>
               <p className="text-text-secondary">Earn more by completing tasks!</p>
             </CardContent>
