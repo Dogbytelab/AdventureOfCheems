@@ -96,6 +96,16 @@ router.post("/user-tasks/:userUid/:taskId/complete", async (req: Request, res: R
   }
 });
 
+router.post("/user-tasks/:userUid/:taskId/claim", async (req: Request, res: Response) => {
+  try {
+    const userTask = await storage.claimTaskReward(req.params.userUid, req.params.taskId);
+    res.json(userTask);
+  } catch (error) {
+    console.error("Error claiming task reward:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // NFT Reservations endpoints - using UID instead of ID
 router.get("/nft-reservations/:userUid", async (req: Request, res: Response) => {
   try {
@@ -135,5 +145,10 @@ router.post("/nft-reservations/:userUid", async (req: Request, res: Response) =>
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
+export function registerRoutes(app: any) {
+  app.use('/api', router);
+  return app;
+}
 
 export { router };
