@@ -10,6 +10,7 @@ interface AuthContextType {
   loading: boolean;
   isNewUser: boolean;
   setIsNewUser: (value: boolean) => void;
+  setUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -56,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ firebaseUser, user, loading, isNewUser, setIsNewUser }}>
+    <AuthContext.Provider value={{ firebaseUser, user, loading, isNewUser, setIsNewUser, setUser: setUser }}>
       {children}
     </AuthContext.Provider>
   );

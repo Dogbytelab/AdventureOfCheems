@@ -15,7 +15,7 @@ interface AuthWrapperProps {
 }
 
 export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
-  const { firebaseUser, isNewUser, setIsNewUser } = useAuth();
+  const { firebaseUser, isNewUser, setIsNewUser, setUser } = useAuth();
   const [inviteCode, setInviteCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -49,13 +49,18 @@ export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
         payload.inviteCode = trimmedCode;
       }
       
-      await apiRequest("POST", "/api/users", payload);
+      const response = await apiRequest("POST", "/api/users", payload);
+      const userData = await response.json();
       
+      // Update the user state and mark as no longer new user
+      setUser(userData);
       setIsNewUser(false);
+      
       toast({
         title: "Welcome!",
         description: "Your account has been created successfully.",
       });
+      
     } catch (error) {
       toast({
         title: "Error",
