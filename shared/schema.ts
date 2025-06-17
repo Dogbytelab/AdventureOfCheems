@@ -64,7 +64,17 @@ export const insertNFTReservationSchema = createInsertSchema(nftReservations).om
   createdAt: true,
 });
 
-export type User = typeof users.$inferSelect;
+export type User = {
+  id: string;
+  uid: string;
+  email: string;
+  referralCode: string;
+  inviteCode: string | null;
+  aocPoints: number;
+  inviteCount: number;
+  multiplier?: number;
+  createdAt: Date;
+}
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;

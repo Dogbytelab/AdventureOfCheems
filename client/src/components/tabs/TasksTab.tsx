@@ -33,6 +33,10 @@ export default function TasksTab() {
   const { data: userTasks = [], refetch: refetchUserTasks } = useQuery<UserTask[]>({
     queryKey: ["/api/user-tasks", user?.uid],
     enabled: !!user?.uid,
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/user-tasks/${user?.uid}`);
+      return response.json();
+    }
   });
 
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
@@ -48,16 +52,24 @@ export default function TasksTab() {
     if (!user) return;
 
     try {
+      const task = tasks.find(t => t.id === taskId);
+      const basePoints = task?.points || 1000;
+      
+      // Get user's multiplier (default 1x if not set)
+      const multiplier = user.multiplier || 1;
+      const totalPoints = basePoints * multiplier;
+
       const response = await apiRequest("POST", `/api/user-tasks/${user?.uid}/${taskId}/claim`);
       if (response.ok) {
         toast({
           title: "Points Claimed!",
-          description: "You've earned 1000 AOC Points!",
+          description: `You've earned ${totalPoints.toLocaleString()} AOC Points! (${basePoints} × ${multiplier}x)`,
         });
 
-        // Invalidate queries to refresh data
+        // Invalidate queries to refresh data immediately
         queryClient.invalidateQueries({ queryKey: ["/api/users", user.uid] });
         queryClient.invalidateQueries({ queryKey: ["/api/user-tasks", user.uid] });
+        refetchUserTasks();
 
         // Remove from completed tasks set
         setCompletedTasks(prev => {

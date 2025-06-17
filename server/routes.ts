@@ -96,6 +96,16 @@ router.post("/user-tasks/:userUid/:taskId/complete", async (req: Request, res: R
   }
 });
 
+router.get("/user-tasks/:userUid", async (req: Request, res: Response) => {
+  try {
+    const userTasks = await storage.getUserTasks(req.params.userUid);
+    res.json(userTasks);
+  } catch (error) {
+    console.error("Error getting user tasks:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 router.post("/user-tasks/:userUid/:taskId/claim", async (req: Request, res: Response) => {
   try {
     const userTask = await storage.claimTaskReward(req.params.userUid, req.params.taskId);

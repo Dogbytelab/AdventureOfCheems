@@ -33,6 +33,7 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
           inviteCode: userData.referral?.invitedBy || null,
           aocPoints: userData.aocPoints?.total || 0,
           inviteCount: userData.referral?.inviteCount || 0,
+          multiplier: userData.multiplier || 1,
           createdAt: userData.createdAt ? new Date(userData.createdAt) : new Date()
         };
       }
@@ -65,6 +66,7 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
         aocPoints: {
           total: 0
         },
+        multiplier: 1,
         tasks: {
           followInsta: false,
           followX: false,
@@ -180,8 +182,20 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
         [taskField]: true
       });
 
-      // Award points to user (1000 points per task)
-      await this.updateUserPoints(userUid, 1000);
+      // Get task points and user multiplier
+      const tasks = await this.getAllTasks();
+      const task = tasks.find(t => t.id === taskId);
+      const basePoints = task?.points || 1000;
+      
+      // Get user's current multiplier
+      const userRef = ref(rtdb, `users/${userUid}/multiplier`);
+      const multiplierSnapshot = await get(userRef);
+      const multiplier = multiplierSnapshot.exists() ? multiplierSnapshot.val() : 1;
+      
+      const totalPoints = basePoints * multiplier;
+
+      // Award calculated points to user
+      await this.updateUserPoints(userUid, totalPoints);
 
       return {
         id: `${userUid}_${taskId}`,
@@ -274,10 +288,42 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
 
   async getAllTasks(): Promise<Task[]> {
     try {
-      // Return hardcoded tasks for now - these match your task structure
-      return [
-        {
-          id: "1",
+      const tasksRef = ref(rtdb, 'tasks');
+      const snapshot = await get(tasksRef);
+      
+      if (snapshot.exists()) {
+        const tasksData = snapshot.val();
+        const tasks: Task[] = [];
+        
+        Object.entries(tasksData).forEach(([id, taskData]: [string, any]) => {
+          tasks.push({
+            id: id,
+            name: taskData.name,
+            description: taskData.description,
+            platform: taskData.platform,
+            url: taskData.url,
+            points: taskData.points,
+            isActive: taskData.isActive !== false,
+          });
+        });
+        
+        return tasks.filter(task => task.isActive);
+      }
+      
+      // Initialize default tasks if none exist
+      await this.initializeDefaultTasks();
+      return await this.getAllTasks();
+    } catch (error) {
+      console.error('Error getting tasks:', error);
+      return [];
+    }
+  }
+
+  private async initializeDefaultTasks(): Promise<void> {
+    try {
+      const tasksRef = ref(rtdb, 'tasks');
+      const defaultTasks = {
+        "1": {
           name: "Follow on X",
           description: "Follow our official X account",
           platform: "twitter",
@@ -285,8 +331,7 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
           points: 1000,
           isActive: true,
         },
-        {
-          id: "2", 
+        "2": {
           name: "Follow on Instagram",
           description: "Follow our Instagram for updates",
           platform: "instagram",
@@ -294,19 +339,19 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
           points: 1000,
           isActive: true,
         },
-        {
-          id: "3",
-          name: "Join Telegram", 
+        "3": {
+          name: "Join Telegram",
           description: "Join our official Telegram channel",
           platform: "telegram",
           url: "https://t.me/AOCoffical",
           points: 1000,
           isActive: true,
         },
-      ];
+      };
+      
+      await set(tasksRef, defaultTasks);
     } catch (error) {
-      console.error('Error getting tasks:', error);
-      return [];
+      console.error('Error initializing default tasks:', error);
     }
   }
 
