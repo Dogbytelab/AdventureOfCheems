@@ -22,9 +22,9 @@ export const NFT_LIMITS: NFTLimits = {
 };
 
 export const NFT_PRICES = {
-  NORMIE: 25,
-  SIGMA: 100,
-  CHAD: 500
+  NORMIE: 5,
+  SIGMA: 25,
+  CHAD: 269
 };
 
 const RECIPIENT_WALLET = "BmzAXDfy6rvSgj4BiZ7R8eEr83S2VpCMKVYwZ3EdgTnp";
