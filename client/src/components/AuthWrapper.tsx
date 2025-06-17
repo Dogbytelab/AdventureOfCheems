@@ -34,15 +34,6 @@ export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
   };
 
   const handleInviteCodeSubmit = async () => {
-    if (!inviteCode.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid invite code",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!firebaseUser) return;
 
     setIsSubmitting(true);
@@ -50,7 +41,7 @@ export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
       await apiRequest("POST", "/api/users", {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        inviteCode: inviteCode.trim(),
+        inviteCode: inviteCode.trim() || null, // Allow empty invite code
       });
       
       setIsNewUser(false);
@@ -61,12 +52,16 @@ export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Invalid invite code or user already exists.",
+        description: "Failed to create account. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSkipInviteCode = async () => {
+    await handleInviteCodeSubmit();
   };
 
   if (firebaseUser && isNewUser) {
@@ -93,16 +88,27 @@ export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
                   className="bg-secondary/50 border-gray-600 text-white font-pixel focus:border-accent"
                 />
                 
-                <Button
-                  onClick={handleInviteCodeSubmit}
-                  disabled={isSubmitting}
-                  className="w-full bg-accent hover:bg-accent/80 text-white font-bold py-3 retro-button"
-                >
-                  {isSubmitting ? "Processing..." : "Continue to Dashboard"}
-                </Button>
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleInviteCodeSubmit}
+                    disabled={isSubmitting}
+                    className="w-full bg-accent hover:bg-accent/80 text-white font-bold py-3 retro-button"
+                  >
+                    {isSubmitting ? "Processing..." : "Continue to Dashboard"}
+                  </Button>
+                  
+                  <Button
+                    onClick={handleSkipInviteCode}
+                    disabled={isSubmitting}
+                    variant="outline"
+                    className="w-full bg-gray-600 hover:bg-gray-700 border-gray-600 text-white font-bold py-3"
+                  >
+                    Skip for Now
+                  </Button>
+                </div>
                 
                 <div className="text-center text-sm text-text-secondary">
-                  Don't have an invite code? Contact @Dogbytelab
+                  You can enter an invite code later to get referral bonuses
                 </div>
               </div>
             </CardContent>
