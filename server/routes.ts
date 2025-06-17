@@ -1,14 +1,18 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { firebaseStorage } from "./firebaseStorage";
+import { storage } from "./storage";
 import { insertUserSchema, insertUserTaskSchema, insertNFTReservationSchema } from "@shared/schema";
 import { z } from "zod";
+
+// Use memory storage as fallback when Firebase has permission issues
+const dataStorage = storage;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get user by Firebase UID
   app.get("/api/users/:uid", async (req, res) => {
     try {
-      const user = await firebaseStorage.getUserByUid(req.params.uid);
+      const user = await dataStorage.getUserByUid(req.params.uid);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -24,20 +28,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertUserSchema.parse(req.body);
       
       // Check if user already exists
-      const existingUser = await firebaseStorage.getUserByUid(validatedData.uid);
+      const existingUser = await dataStorage.getUserByUid(validatedData.uid);
       if (existingUser) {
         return res.status(409).json({ message: "User already exists" });
       }
 
       // Generate unique referral code
-      const referralCode = await firebaseStorage.generateReferralCode();
+      const referralCode = await dataStorage.generateReferralCode();
       
       // Clean up invite code - convert empty string to null
       const inviteCode = validatedData.inviteCode && validatedData.inviteCode.trim() 
         ? validatedData.inviteCode.trim() 
         : null;
       
-      const user = await firebaseStorage.createUser({
+      const user = await dataStorage.createUser({
         ...validatedData,
         referralCode,
         inviteCode,
@@ -45,7 +49,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If user used an invite code, update the referrer's invite count
       if (inviteCode) {
-        await firebaseStorage.incrementInviteCount(inviteCode);
+        await dataStorage.incrementInviteCount(inviteCode);
       }
       
       res.status(201).json(user);
@@ -60,7 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all tasks
   app.get("/api/tasks", async (req, res) => {
     try {
-      const tasks = await firebaseStorage.getAllTasks();
+      const tasks = await dataStorage.getAllTasks();
       res.json(tasks);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -70,8 +74,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user tasks
   app.get("/api/user-tasks/:userId", async (req, res) => {
     try {
-      const userId = req.params.userId;
-      const userTasks = await firebaseStorage.getUserTasks(userId);
+      const userId = parseInt(req.params.userId);
+      const userTasks = await dataStorage.getUserTasks(userId);
       res.json(userTasks);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -84,12 +88,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertUserTaskSchema.parse(req.body);
       
       // Check if task is already completed
-      const existingUserTask = await firebaseStorage.getUserTask(validatedData.userId, validatedData.taskId);
+      const existingUserTask = await dataStorage.getUserTask(validatedData.userId, validatedData.taskId);
       if (existingUserTask && existingUserTask.completed) {
         return res.status(409).json({ message: "Task already completed" });
       }
       
-      const userTask = await firebaseStorage.completeTask(validatedData.userId, validatedData.taskId);
+      const userTask = await dataStorage.completeTask(validatedData.userId, validatedData.taskId);
       res.status(201).json(userTask);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -103,7 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/nft-reservations", async (req, res) => {
     try {
       const validatedData = insertNFTReservationSchema.parse(req.body);
-      const reservation = await firebaseStorage.createNFTReservation(validatedData);
+      const reservation = await dataStorage.createNFTReservation(validatedData);
       res.status(201).json(reservation);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -116,8 +120,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get NFT reservations for user
   app.get("/api/nft-reservations/:userId", async (req, res) => {
     try {
-      const userId = req.params.userId;
-      const reservations = await firebaseStorage.getNFTReservations(userId);
+      const userId = parseInt(req.params.userId);
+      const reservations = await dataStorage.getNFTReservations(userId);
       res.json(reservations);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });

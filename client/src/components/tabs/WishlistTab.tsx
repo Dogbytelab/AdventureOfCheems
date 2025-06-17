@@ -1,12 +1,99 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest } from "@/lib/queryClient";
 
 interface WishlistTabProps {
   onReserveNFT: (nftType: string, price: number) => void;
 }
 
 export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
+  const { firebaseUser } = useAuth();
+  const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const RECIPIENT_WALLET = "BmzAXDfy6rvSgj4BiZ7R8eEr83S2VpCMKVYwZ3EdgTnp";
+
+  const handlePhantomPayment = async (nftType: string, price: number) => {
+    if (!firebaseUser) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to reserve NFTs",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    
+    try {
+      // Check if Phantom wallet is available
+      const { solana } = window as any;
+      
+      if (!solana?.isPhantom) {
+        toast({
+          title: "Phantom Wallet Required",
+          description: "Please install Phantom wallet to continue",
+          variant: "destructive",
+        });
+        window.open('https://phantom.app/', '_blank');
+        return;
+      }
+
+      // Connect to Phantom wallet
+      await solana.connect();
+      
+      // Get current SOL price
+      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+      const priceData = await response.json();
+      const solPrice = priceData.solana.usd;
+      const solAmount = price / solPrice;
+
+      toast({
+        title: "Wallet Connected",
+        description: `Please approve the transaction for ${solAmount.toFixed(4)} SOL ($${price} USD)`,
+      });
+
+      // Create and send transaction
+      const transaction = await solana.request({
+        method: "signAndSendTransaction",
+        params: {
+          message: `Reserve ${nftType.toUpperCase()} NFT - $${price} USD`,
+          transaction: {
+            to: RECIPIENT_WALLET,
+            value: Math.floor(solAmount * 1000000000), // Convert to lamports
+          }
+        }
+      });
+
+      // Store reservation in Firebase
+      await apiRequest("POST", "/api/nft-reservations", {
+        userId: firebaseUser.uid,
+        nftType: nftType,
+        price: price,
+        txHash: transaction.signature,
+      });
+
+      toast({
+        title: "NFT Reserved Successfully!",
+        description: `Your ${nftType.toUpperCase()} NFT has been reserved. Transaction: ${transaction.signature.slice(0, 8)}...`,
+      });
+
+    } catch (error: any) {
+      console.error('Payment failed:', error);
+      toast({
+        title: "Payment Failed",
+        description: error.message || "Failed to process payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const nfts = [
     {
       type: "normie",
@@ -79,12 +166,13 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                 )}
                 
                 <Button
-                  onClick={() => onReserveNFT(nft.type, nft.price)}
+                  onClick={() => handlePhantomPayment(nft.type, nft.price)}
+                  disabled={isProcessing}
                   className={`w-full ${nft.buttonColor} text-white font-bold py-3 px-6 retro-button ${
                     nft.rare ? "pulse-glow" : ""
                   }`}
                 >
-                  Reserve Now
+                  {isProcessing ? "Processing..." : "Reserve with Phantom"}
                 </Button>
               </CardContent>
             </Card>
