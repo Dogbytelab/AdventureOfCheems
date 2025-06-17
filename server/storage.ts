@@ -5,7 +5,6 @@ import {
   type NFTReservation,
   type InsertNFTReservation 
 } from "@shared/schema";
-import { nestedFirebaseStorage } from "./nestedFirebaseStorage";
 
 type CreateUserData = {
   uid: string;
@@ -256,7 +255,6 @@ export class MemStorage implements IStorage {
   }
 }
 
-import { nestedFirebaseStorage } from "./nestedFirebaseStorage";
-
 // Use NestedFirebaseStorage as the default storage implementation
+import { nestedFirebaseStorage } from "./nestedFirebaseStorage";
 export const storage: IStorage = nestedFirebaseStorage;

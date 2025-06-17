@@ -378,9 +378,26 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
     nftType: string;
     price: number;
     txHash: string;
+    walletAddress: string;
+    solAmount: string;
   }): Promise<NFTReservation> {
     try {
-      // Update wishlist in nested user structure
+      const reservationId = `${Date.now()}_${reservation.userId}`;
+      
+      // Store in dedicated nft_reservations structure
+      await set(ref(rtdb, `nft_reservations/${reservationId}`), {
+        userId: reservation.userId,
+        nftType: reservation.nftType,
+        price: reservation.price,
+        txHash: reservation.txHash,
+        walletAddress: reservation.walletAddress,
+        solAmount: reservation.solAmount,
+        verified: false,
+        verificationAttempts: 0,
+        createdAt: serverTimestamp()
+      });
+
+      // Also update user's wishlist for compatibility
       await update(ref(rtdb, `users/${reservation.userId}/wishlist`), {
         type: reservation.nftType,
         amount: reservation.price,
@@ -389,14 +406,16 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
         timestamp: serverTimestamp()
       });
 
-      // Return NFTReservation for compatibility
       return {
-        id: `${reservation.userId}_wishlist`,
+        id: reservationId,
         userId: reservation.userId,
         nftType: reservation.nftType,
         price: reservation.price,
         txHash: reservation.txHash,
+        walletAddress: reservation.walletAddress,
+        solAmount: reservation.solAmount,
         verified: false,
+        verificationAttempts: 0,
         createdAt: new Date(),
       };
     } catch (error) {
@@ -461,6 +480,108 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
       'joinTelegram': '3'
     };
     return fieldMap[fieldName] || fieldName.replace('task_', '');
+  }
+
+  async getAllNFTReservations(): Promise<NFTReservation[]> {
+    try {
+      const reservationsRef = ref(rtdb, 'nft_reservations');
+      const snapshot = await get(reservationsRef);
+      
+      if (snapshot.exists()) {
+        const reservationsData = snapshot.val();
+        const reservations: NFTReservation[] = [];
+        
+        Object.entries(reservationsData).forEach(([id, data]: [string, any]) => {
+          reservations.push({
+            id: id,
+            userId: data.userId,
+            nftType: data.nftType,
+            price: data.price,
+            txHash: data.txHash,
+            walletAddress: data.walletAddress,
+            solAmount: data.solAmount,
+            verified: data.verified || false,
+            verificationAttempts: data.verificationAttempts || 0,
+            createdAt: data.createdAt ? new Date(data.createdAt) : new Date()
+          });
+        });
+        
+        return reservations;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error getting all NFT reservations:', error);
+      return [];
+    }
+  }
+
+  async isTransactionHashUsed(txHash: string): Promise<boolean> {
+    try {
+      const reservationsRef = ref(rtdb, 'nft_reservations');
+      const snapshot = await get(reservationsRef);
+      
+      if (snapshot.exists()) {
+        const reservationsData = snapshot.val();
+        return Object.values(reservationsData).some((data: any) => data.txHash === txHash);
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking transaction hash:', error);
+      return false;
+    }
+  }
+
+  async getNFTReservationCountByType(nftType: string): Promise<number> {
+    try {
+      const reservationsRef = ref(rtdb, 'nft_reservations');
+      const snapshot = await get(reservationsRef);
+      
+      if (snapshot.exists()) {
+        const reservationsData = snapshot.val();
+        return Object.values(reservationsData).filter((data: any) => 
+          data.nftType.toLowerCase() === nftType.toLowerCase()
+        ).length;
+      }
+      return 0;
+    } catch (error) {
+      console.error('Error getting NFT reservation count by type:', error);
+      return 0;
+    }
+  }
+
+  async getUserNFTReservationsByType(userUid: string, nftType: string): Promise<NFTReservation[]> {
+    try {
+      const reservationsRef = ref(rtdb, 'nft_reservations');
+      const snapshot = await get(reservationsRef);
+      
+      if (snapshot.exists()) {
+        const reservationsData = snapshot.val();
+        const userReservations: NFTReservation[] = [];
+        
+        Object.entries(reservationsData).forEach(([id, data]: [string, any]) => {
+          if (data.userId === userUid && data.nftType.toLowerCase() === nftType.toLowerCase()) {
+            userReservations.push({
+              id: id,
+              userId: data.userId,
+              nftType: data.nftType,
+              price: data.price,
+              txHash: data.txHash,
+              walletAddress: data.walletAddress,
+              solAmount: data.solAmount,
+              verified: data.verified || false,
+              verificationAttempts: data.verificationAttempts || 0,
+              createdAt: data.createdAt ? new Date(data.createdAt) : new Date()
+            });
+          }
+        });
+        
+        return userReservations;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error getting user NFT reservations by type:', error);
+      return [];
+    }
   }
 }
 

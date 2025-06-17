@@ -38,8 +38,14 @@ export interface IFirebaseStorage {
     nftType: string;
     price: number;
     txHash: string;
+    walletAddress: string;
+    solAmount: string;
   }): Promise<NFTReservation>;
   getNFTReservations(userId: string): Promise<NFTReservation[]>;
+  getAllNFTReservations(): Promise<NFTReservation[]>;
+  isTransactionHashUsed(txHash: string): Promise<boolean>;
+  getNFTReservationCountByType(nftType: string): Promise<number>;
+  getUserNFTReservationsByType(userUid: string, nftType: string): Promise<NFTReservation[]>;
   
   updateUserPoints(userId: string, points: number): Promise<void>;
 }

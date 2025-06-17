@@ -128,31 +128,103 @@ router.get("/nft-reservations/:userUid", async (req: Request, res: Response) => 
 });
 
 const createReservationSchema = z.object({
-  nftType: z.string(),
-  price: z.number(),
-  txHash: z.string(),
+  nftType: z.string().min(1),
+  price: z.number().positive(),
+  txHash: z.string().min(32),
+  walletAddress: z.string().min(32),
+  solAmount: z.string(),
 });
 
 router.post("/nft-reservations/:userUid", async (req: Request, res: Response) => {
   try {
     const validation = createReservationSchema.safeParse(req.body);
     if (!validation.success) {
-      return res.status(400).json({ message: "Invalid input", errors: validation.error.errors });
+      return res.status(400).json({ 
+        message: "Invalid input", 
+        errors: validation.error.errors 
+      });
     }
 
-    const { nftType, price, txHash } = validation.data;
+    const { nftType, price, txHash, walletAddress, solAmount } = validation.data;
+    const userUid = req.params.userUid;
+
+    // Check if transaction hash is already used
+    const isHashUsed = await storage.isTransactionHashUsed(txHash);
+    if (isHashUsed) {
+      return res.status(409).json({ 
+        message: "Transaction hash already used. Please use a unique transaction." 
+      });
+    }
+
+    // Validate NFT limits
+    const nftLimits: { [key: string]: number } = {
+      'NORMIE': 25,
+      'SIGMA': 5,
+      'CHAD': 1
+    };
+
+    const currentCount = await storage.getNFTReservationCountByType(nftType);
+    const limit = nftLimits[nftType.toUpperCase()];
+    
+    if (!limit) {
+      return res.status(400).json({ 
+        message: "Invalid NFT type. Must be NORMIE, SIGMA, or CHAD." 
+      });
+    }
+
+    if (currentCount >= limit) {
+      return res.status(400).json({ 
+        message: `${nftType.toUpperCase()} NFTs are sold out. Only ${limit} available.` 
+      });
+    }
+
+    // Check user's existing reservations for this NFT type
+    const userReservations = await storage.getUserNFTReservationsByType(userUid, nftType);
+    if (userReservations.length > 0) {
+      return res.status(400).json({ 
+        message: `You already have a reservation for ${nftType.toUpperCase()} NFT.` 
+      });
+    }
 
     const reservation = await storage.createNFTReservation({
-      userId: req.params.userUid,
+      userId: userUid,
       nftType,
       price,
       txHash,
+      walletAddress,
+      solAmount,
     });
 
     res.status(201).json(reservation);
   } catch (error) {
     console.error("Error creating NFT reservation:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Add verification endpoint
+router.post("/verify-transaction", async (req: Request, res: Response) => {
+  try {
+    const { txHash, expectedAmountUSD, nftType } = req.body;
+    
+    if (!txHash || !expectedAmountUSD || !nftType) {
+      return res.status(400).json({ 
+        message: "Missing required parameters: txHash, expectedAmountUSD, nftType" 
+      });
+    }
+
+    // Import verification function dynamically to avoid circular dependencies
+    const { verifySolanaTransaction } = await import("../client/src/lib/solana");
+    
+    const verification = await verifySolanaTransaction(txHash, expectedAmountUSD, nftType);
+    
+    res.json(verification);
+  } catch (error) {
+    console.error("Error verifying transaction:", error);
+    res.status(500).json({ 
+      message: "Transaction verification failed",
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
   }
 });
 
