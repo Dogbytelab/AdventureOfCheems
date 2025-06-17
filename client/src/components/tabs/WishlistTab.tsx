@@ -121,19 +121,9 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
           expectedAmountUSD: price,
           nftType
         })
-      }).catch(error => {
-        console.error('Verification request failed:', error);
-        throw new Error('Failed to verify transaction');
       });
 
-      if (!verificationResponse.ok) {
-        throw new Error(`Verification failed with status: ${verificationResponse.status}`);
-      }
-
-      const verification = await verificationResponse.json().catch(error => {
-        console.error('Failed to parse verification response:', error);
-        throw new Error('Invalid verification response');
-      });
+      const verification = await verificationResponse.json();
 
       if (!verification.valid) {
         throw new Error(verification.error || 'Transaction verification failed');
@@ -146,9 +136,6 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
         txHash: txHash,
         walletAddress: walletAddress,
         solAmount: solAmount.toString(),
-      }).catch(error => {
-        console.error('Failed to create NFT reservation:', error);
-        throw new Error('Failed to create NFT reservation');
       });
 
       toast({
