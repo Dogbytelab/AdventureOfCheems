@@ -48,6 +48,12 @@ export class FirebaseStorage implements IFirebaseStorage {
   
   async getUserByUid(uid: string): Promise<User | undefined> {
     try {
+      console.log('Firebase config check:', {
+        hasApiKey: !!process.env.FIREBASE_API_KEY,
+        hasDbUrl: !!process.env.FIREBASE_DATABASE_URL,
+        dbUrl: process.env.FIREBASE_DATABASE_URL?.substring(0, 30) + '...'
+      });
+      
       const usersRef = ref(rtdb, 'users');
       const userQuery = query(usersRef, orderByChild('uid'), equalTo(uid));
       const snapshot = await get(userQuery);
