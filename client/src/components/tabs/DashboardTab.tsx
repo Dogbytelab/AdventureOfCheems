@@ -122,7 +122,7 @@ export default function DashboardTab() {
                   type="text"
                   readOnly
                   value={user?.referralCode || "Generating..."}
-                  className="flex-1 bg-secondary/50 border-gray-600 text-white font-mono"
+                  className="flex-1 bg-secondary/50 border-gray-600 text-black font-mono"
                   disabled={!user?.referralCode}
                 />
                 <Button
