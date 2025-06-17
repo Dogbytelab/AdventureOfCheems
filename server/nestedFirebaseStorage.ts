@@ -100,34 +100,11 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
     
-    do {
-      result = '';
-      for (let i = 0; i < 6; i++) {
-        result += characters.charAt(Math.floor(Math.random() * characters.length));
-      }
-      
-      // Check if code already exists by scanning all users
-      const usersRef = ref(rtdb, 'users');
-      const snapshot = await get(usersRef);
-      
-      if (snapshot.exists()) {
-        const users = snapshot.val();
-        let codeExists = false;
-        
-        for (const userData of Object.values(users)) {
-          if ((userData as any).referral?.code === result) {
-            codeExists = true;
-            break;
-          }
-        }
-        
-        if (!codeExists) {
-          break;
-        }
-      } else {
-        break;
-      }
-    } while (true);
+    // Generate random code without checking duplicates for now
+    // This avoids the indexing issue during user creation
+    for (let i = 0; i < 6; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
     
     return result;
   }
