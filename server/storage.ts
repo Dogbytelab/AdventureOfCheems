@@ -85,7 +85,12 @@ export class MemStorage implements IStorage {
     defaultTasks.forEach(taskData => {
       const task: Task = {
         id: this.currentTaskId++,
-        ...taskData,
+        name: taskData.name,
+        description: taskData.description,
+        platform: taskData.platform,
+        url: taskData.url,
+        points: taskData.points || 1000,
+        isActive: taskData.isActive !== false,
       };
       this.tasks.set(task.id, task);
     });
@@ -99,7 +104,10 @@ export class MemStorage implements IStorage {
     const id = this.currentUserId++;
     const user: User = {
       id,
-      ...insertUser,
+      uid: insertUser.uid,
+      email: insertUser.email,
+      referralCode: insertUser.referralCode,
+      inviteCode: insertUser.inviteCode ?? null,
       aocPoints: 0,
       inviteCount: 0,
       createdAt: new Date(),
