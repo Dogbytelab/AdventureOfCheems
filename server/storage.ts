@@ -1,13 +1,11 @@
-import {
-  type User,
-  type InsertUser,
-  type Task,
-  type InsertTask,
-  type UserTask,
-  type InsertUserTask,
+import { 
+  type User, 
+  type Task, 
+  type UserTask, 
   type NFTReservation,
-  type InsertNFTReservation
+  type InsertNFTReservation 
 } from "@shared/schema";
+import { nestedFirebaseStorage } from "./nestedFirebaseStorage";
 
 type CreateUserData = {
   uid: string;
@@ -22,13 +20,13 @@ export interface IStorage {
   createUser(user: CreateUserData): Promise<User>;
   generateReferralCode(): Promise<string>;
   incrementInviteCount(referralCode: string): Promise<void>;
-  
+
   getAllTasks(): Promise<Task[]>;
   getUserTasks(userUid: string): Promise<UserTask[]>;
   getUserTask(userUid: string, taskId: string): Promise<UserTask | undefined>;
   completeTask(userUid: string, taskId: string): Promise<UserTask>;
   claimTaskReward(userUid: string, taskId: string): Promise<UserTask>;
-  
+
   createNFTReservation(reservation: InsertNFTReservation): Promise<NFTReservation>;
   getNFTReservations(userUid: string): Promise<NFTReservation[]>;
 }
@@ -38,7 +36,7 @@ export class MemStorage implements IStorage {
   private tasks: Map<string, Task>;
   private userTasks: Map<string, UserTask>;
   private nftReservations: Map<string, NFTReservation>;
-  
+
   private currentUserId: number;
   private currentTaskId: number;
   private currentUserTaskId: number;
@@ -49,12 +47,12 @@ export class MemStorage implements IStorage {
     this.tasks = new Map();
     this.userTasks = new Map();
     this.nftReservations = new Map();
-    
+
     this.currentUserId = 1;
     this.currentTaskId = 1;
     this.currentUserTaskId = 1;
     this.currentNFTReservationId = 1;
-    
+
     this.initializeDefaultTasks();
   }
 
@@ -128,20 +126,20 @@ export class MemStorage implements IStorage {
   async generateReferralCode(): Promise<string> {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
-    
+
     do {
       result = '';
       for (let i = 0; i < 6; i++) {
         result += characters.charAt(Math.floor(Math.random() * characters.length));
       }
-      
+
       // Check if code already exists
       const existingUser = Array.from(this.users.values()).find(user => user.referralCode === result);
       if (!existingUser) {
         break;
       }
     } while (true);
-    
+
     return result;
   }
 
@@ -231,4 +229,7 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+import { nestedFirebaseStorage } from "./nestedFirebaseStorage";
+
+// Use NestedFirebaseStorage as the default storage implementation
+export const storage: IStorage = nestedFirebaseStorage;

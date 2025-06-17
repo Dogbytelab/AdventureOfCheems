@@ -12,7 +12,7 @@ export default function TasksTab() {
   const { firebaseUser } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const { data: user } = useQuery<User>({
     queryKey: ["/api/users", firebaseUser?.uid],
     enabled: !!firebaseUser?.uid,
@@ -30,13 +30,9 @@ export default function TasksTab() {
     }
   });
 
-  const { data: userTasks = [] } = useQuery<UserTask[]>({
+  const { data: userTasks = [], refetch: refetchUserTasks } = useQuery<UserTask[]>({
     queryKey: ["/api/user-tasks", user?.uid],
     enabled: !!user?.uid,
-    queryFn: async () => {
-      const response = await apiRequest("GET", `/api/user-tasks/${user?.uid}`);
-      return response.json();
-    }
   });
 
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
@@ -52,17 +48,17 @@ export default function TasksTab() {
     if (!user) return;
 
     try {
-      const response = await apiRequest("POST", `/api/user-tasks/${user.uid}/${taskId}/claim`);
+      const response = await apiRequest("POST", `/api/user-tasks/${user?.uid}/${taskId}/claim`);
       if (response.ok) {
         toast({
           title: "Points Claimed!",
           description: "You've earned 1000 AOC Points!",
         });
-        
+
         // Invalidate queries to refresh data
         queryClient.invalidateQueries({ queryKey: ["/api/users", user.uid] });
         queryClient.invalidateQueries({ queryKey: ["/api/user-tasks", user.uid] });
-        
+
         // Remove from completed tasks set
         setCompletedTasks(prev => {
           const newSet = new Set(prev);
@@ -121,11 +117,11 @@ export default function TasksTab() {
       >
         TASKS
       </motion.h2>
-      
+
       <div className="space-y-4">
         {tasks.map((task, index) => {
           const completed = isTaskCompleted(task.id);
-          
+
           return (
             <motion.div
               key={task.id}

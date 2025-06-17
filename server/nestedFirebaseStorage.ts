@@ -15,16 +15,16 @@ import {
 import { IFirebaseStorage } from "./firebaseStorage";
 
 export class NestedFirebaseStorage implements IFirebaseStorage {
-  
+
   async getUserByUid(uid: string): Promise<User | undefined> {
     try {
       const userRef = ref(rtdb, `users/${uid}`);
       const snapshot = await get(userRef);
-      
+
       if (snapshot.exists()) {
         const userData = snapshot.val();
         console.log('Raw user data from Firebase:', userData);
-        
+
         return {
           id: uid,
           uid: uid,
@@ -51,7 +51,7 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
   }): Promise<User> {
     try {
       const userRef = ref(rtdb, `users/${userData.uid}`);
-      
+
       const nestedUserData = {
         auth: {
           email: userData.email,
@@ -79,9 +79,9 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
         },
         createdAt: serverTimestamp()
       };
-      
+
       await set(userRef, nestedUserData);
-      
+
       return {
         id: userData.uid,
         uid: userData.uid,
@@ -98,125 +98,60 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
     }
   }
 
-  async generateReferralCode(): Promise<string> {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    
-    // Generate random code without checking duplicates for now
-    // This avoids the indexing issue during user creation
-    for (let i = 0; i < 6; i++) {
-      result += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    
-    return result;
-  }
-
-  async incrementInviteCount(referralCode: string): Promise<void> {
+  async getAllUsers(): Promise<User[]> {
     try {
       const usersRef = ref(rtdb, 'users');
       const snapshot = await get(usersRef);
-      
-      if (snapshot.exists()) {
-        const users = snapshot.val();
-        for (const [uid, userData] of Object.entries(users)) {
-          if ((userData as any).referral?.code === referralCode) {
-            const currentCount = (userData as any).referral?.inviteCount || 0;
-            const currentPoints = (userData as any).aocPoints?.total || 0;
-            
-            await update(ref(rtdb, `users/${uid}`), {
-              'referral/inviteCount': currentCount + 1,
-              'aocPoints/total': currentPoints + 100
-            });
-            break;
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error incrementing invite count:', error);
-    }
-  }
 
-  async getAllTasks(): Promise<Task[]> {
-    try {
-      const tasksRef = ref(rtdb, 'tasks');
-      const snapshot = await get(tasksRef);
-      
       if (snapshot.exists()) {
-        return Object.values(snapshot.val()) as Task[];
+        const usersData = snapshot.val();
+        const users: User[] = [];
+
+        Object.entries(usersData).forEach(([uid, userData]: [string, any]) => {
+          users.push({
+            id: uid,
+            uid: uid,
+            email: userData.auth?.email || '',
+            referralCode: userData.referral?.code || '',
+            inviteCode: userData.referral?.invitedBy || null,
+            aocPoints: userData.aocPoints?.total || 0,
+            inviteCount: userData.referral?.inviteCount || 0,
+            createdAt: userData.createdAt ? new Date(userData.createdAt) : new Date()
+          });
+        });
+
+        return users;
       }
-      
-      await this.initializeDefaultTasks();
-      const newSnapshot = await get(tasksRef);
-      return Object.values(newSnapshot.val()) as Task[];
+      return [];
     } catch (error) {
-      console.error('Error getting tasks:', error);
+      console.error('Error getting all users:', error);
       return [];
     }
   }
 
-  private async initializeDefaultTasks(): Promise<void> {
-    const defaultTasks = [
-      {
-        id: "1",
-        name: "Follow on X",
-        description: "Follow our official X account",
-        platform: "twitter",
-        url: "https://x.com/DogByteLabz",
-        points: 1000,
-        isActive: true,
-      },
-      {
-        id: "2", 
-        name: "Follow on Instagram",
-        description: "Follow our Instagram for updates",
-        platform: "instagram",
-        url: "https://instagram.com/aoc.offical",
-        points: 1000,
-        isActive: true,
-      },
-      {
-        id: "3",
-        name: "Join Telegram",
-        description: "Join our official Telegram channel", 
-        platform: "telegram",
-        url: "https://t.me/AOCoffical",
-        points: 1000,
-        isActive: true,
-      },
-    ];
-
-    const tasksRef = ref(rtdb, 'tasks');
-    const tasksData: { [key: string]: Task } = {};
-    
-    defaultTasks.forEach(task => {
-      tasksData[task.id] = task;
-    });
-    
-    await set(tasksRef, tasksData);
-  }
-
-  async getUserTasks(userId: string): Promise<UserTask[]> {
+  async getUserTasks(userUid: string): Promise<UserTask[]> {
     try {
-      const userRef = ref(rtdb, `users/${userId}/tasks`);
+      const userRef = ref(rtdb, `users/${userUid}/tasks`);
       const snapshot = await get(userRef);
-      
+
       if (snapshot.exists()) {
         const tasks = snapshot.val();
         const userTasks: UserTask[] = [];
-        
+
+        // Convert boolean task status to UserTask objects
         Object.entries(tasks).forEach(([taskField, completed]) => {
-          if (completed) {
+          if (typeof completed === 'boolean') {
             const taskId = this.getTaskIdFromField(taskField);
             userTasks.push({
-              id: `${userId}_${taskId}`,
-              userId,
-              taskId,
-              completed: true,
-              completedAt: new Date()
+              id: `${userUid}_${taskId}`,
+              userId: userUid,
+              taskId: taskId,
+              completed: completed as boolean,
+              completedAt: completed ? new Date() : undefined,
             });
           }
         });
-        
+
         return userTasks;
       }
       return [];
@@ -226,22 +161,10 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
     }
   }
 
-  async getUserTask(userId: string, taskId: string): Promise<UserTask | undefined> {
+  async getUserTask(userUid: string, taskId: string): Promise<UserTask | undefined> {
     try {
-      const taskField = this.getTaskFieldName(taskId);
-      const userRef = ref(rtdb, `users/${userId}/tasks/${taskField}`);
-      const snapshot = await get(userRef);
-      
-      if (snapshot.exists() && snapshot.val() === true) {
-        return {
-          id: `${userId}_${taskId}`,
-          userId,
-          taskId,
-          completed: true,
-          completedAt: new Date()
-        };
-      }
-      return undefined;
+      const userTasks = await this.getUserTasks(userUid);
+      return userTasks.find(ut => ut.taskId === taskId);
     } catch (error) {
       console.error('Error getting user task:', error);
       return undefined;
@@ -251,33 +174,139 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
   async completeTask(userUid: string, taskId: string): Promise<UserTask> {
     try {
       const taskField = this.getTaskFieldName(taskId);
-      const userRef = ref(rtdb, `users/${userUid}`);
-      const userSnapshot = await get(userRef);
-      
-      if (!userSnapshot.exists()) {
-        throw new Error('User not found');
-      }
-      
-      const userData = userSnapshot.val();
-      const currentPoints = userData.aocPoints?.total || 0;
-      const points = 1000;
-      
-      // Update both task completion and points
-      await update(userRef, {
-        [`tasks/${taskField}`]: true,
-        'aocPoints/total': currentPoints + points
+
+      // Update task status in Firebase
+      await update(ref(rtdb, `users/${userUid}/tasks`), {
+        [taskField]: true
       });
-      
+
+      // Award points to user (1000 points per task)
+      await this.updateUserPoints(userUid, 1000);
+
       return {
         id: `${userUid}_${taskId}`,
         userId: userUid,
         taskId: taskId,
         completed: true,
-        completedAt: new Date()
+        completedAt: new Date(),
       };
     } catch (error) {
       console.error('Error completing task:', error);
       throw error;
+    }
+  }
+
+  async claimTaskReward(userUid: string, taskId: string): Promise<UserTask> {
+    try {
+      // First check if task is already completed
+      const userTask = await this.getUserTask(userUid, taskId);
+      if (userTask && userTask.completed) {
+        // Task already completed, just return it
+        return userTask;
+      }
+
+      // Complete the task and award points
+      return await this.completeTask(userUid, taskId);
+    } catch (error) {
+      console.error('Error claiming task reward:', error);
+      throw error;
+    }
+  }
+
+  async generateReferralCode(): Promise<string> {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+
+    do {
+      result = '';
+      for (let i = 0; i < 6; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+      }
+
+      // Check if code already exists
+      const usersRef = ref(rtdb, 'users');
+      const snapshot = await get(usersRef);
+
+      if (snapshot.exists()) {
+        const users = snapshot.val();
+        const existingCode = Object.values(users).find((user: any) => 
+          user.referral?.code === result
+        );
+        if (!existingCode) {
+          break;
+        }
+      } else {
+        break;
+      }
+    } while (true);
+
+    return result;
+  }
+
+  async incrementInviteCount(referralCode: string): Promise<void> {
+    try {
+      const usersRef = ref(rtdb, 'users');
+      const snapshot = await get(usersRef);
+
+      if (snapshot.exists()) {
+        const users = snapshot.val();
+
+        // Find user with this referral code
+        const userEntry = Object.entries(users).find(([uid, userData]: [string, any]) => 
+          userData.referral?.code === referralCode
+        );
+
+        if (userEntry) {
+          const [uid, userData] = userEntry;
+          const currentInviteCount = userData.referral?.inviteCount || 0;
+          const currentPoints = userData.aocPoints?.total || 0;
+
+          await update(ref(rtdb, `users/${uid}`), {
+            'referral/inviteCount': currentInviteCount + 1,
+            'aocPoints/total': currentPoints + 100 // +100 AOC points per invite
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error incrementing invite count:', error);
+    }
+  }
+
+  async getAllTasks(): Promise<Task[]> {
+    try {
+      // Return hardcoded tasks for now - these match your task structure
+      return [
+        {
+          id: "1",
+          name: "Follow on X",
+          description: "Follow our official X account",
+          platform: "twitter",
+          url: "https://x.com/DogByteLabz",
+          points: 1000,
+          isActive: true,
+        },
+        {
+          id: "2", 
+          name: "Follow on Instagram",
+          description: "Follow our Instagram for updates",
+          platform: "instagram",
+          url: "https://instagram.com/aoc.offical",
+          points: 1000,
+          isActive: true,
+        },
+        {
+          id: "3",
+          name: "Join Telegram", 
+          description: "Join our official Telegram channel",
+          platform: "telegram",
+          url: "https://t.me/AOCoffical",
+          points: 1000,
+          isActive: true,
+        },
+      ];
+    } catch (error) {
+      console.error('Error getting tasks:', error);
+      return [];
     }
   }
 
@@ -288,6 +317,7 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
     txHash: string;
   }): Promise<NFTReservation> {
     try {
+      // Update wishlist in nested user structure
       await update(ref(rtdb, `users/${reservation.userId}/wishlist`), {
         type: reservation.nftType,
         amount: reservation.price,
@@ -295,7 +325,8 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
         confirmed: false,
         timestamp: serverTimestamp()
       });
-      
+
+      // Return NFTReservation for compatibility
       return {
         id: `${reservation.userId}_wishlist`,
         userId: reservation.userId,
@@ -315,7 +346,7 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
     try {
       const wishlistRef = ref(rtdb, `users/${userId}/wishlist`);
       const snapshot = await get(wishlistRef);
-      
+
       if (snapshot.exists()) {
         const wishlist = snapshot.val();
         if (wishlist.type && wishlist.txHash) {
@@ -342,7 +373,7 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
       const currentPointsRef = ref(rtdb, `users/${userId}/aocPoints/total`);
       const snapshot = await get(currentPointsRef);
       const currentPoints = snapshot.exists() ? snapshot.val() : 0;
-      
+
       await update(ref(rtdb, `users/${userId}/aocPoints`), {
         total: currentPoints + points
       });
