@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useCreateNFTReservation } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { verifySolanaTransaction } from "@/lib/solana";
+import { getCurrentSOLPrice, calculateSOLAmount } from "@/lib/solana";
 import { useQuery } from "@tanstack/react-query";
 import type { User } from "@shared/schema";
 
@@ -20,6 +20,8 @@ interface PaymentModalProps {
 export default function PaymentModal({ isOpen, onClose, nftType, price }: PaymentModalProps) {
   const [txHash, setTxHash] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+  const [solPrice, setSolPrice] = useState<number | null>(null);
+  const [solAmount, setSolAmount] = useState<number | null>(null);
   const { firebaseUser } = useAuth();
   const { toast } = useToast();
   const createReservation = useCreateNFTReservation();
@@ -29,24 +31,45 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
     enabled: !!firebaseUser?.uid,
   });
 
+  // Fetch SOL price when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const fetchSOLPrice = async () => {
+        try {
+          const currentPrice = await getCurrentSOLPrice();
+          setSolPrice(currentPrice);
+          setSolAmount(calculateSOLAmount(price, currentPrice));
+        } catch (error) {
+          console.error("Failed to fetch SOL price:", error);
+          toast({
+            title: "Price Fetch Error",
+            description: "Failed to get current SOL price. Please try again.",
+            variant: "destructive",
+          });
+        }
+      };
+      fetchSOLPrice();
+    }
+  }, [isOpen, price, toast]);
+
   const handleConfirmPayment = async () => {
     const trimmedTxHash = txHash.trim();
     
     if (!trimmedTxHash) {
       toast({
-        title: "Error",
-        description: "Please enter a transaction hash",
+        title: "Transaction Hash Required",
+        description: "Please enter the transaction hash from your wallet",
         variant: "destructive",
       });
       return;
     }
 
-    // Validate Base58 format before making API call
-    const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+    // Validate Base58 format
+    const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,88}$/;
     if (!base58Regex.test(trimmedTxHash)) {
       toast({
         title: "Invalid Transaction Hash",
-        description: "Please enter a valid Solana transaction hash. It should be 32-44 characters long and contain only Base58 characters.",
+        description: "Please enter a valid Solana transaction hash (32-88 Base58 characters)",
         variant: "destructive",
       });
       return;
@@ -54,8 +77,8 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
 
     if (!user) {
       toast({
-        title: "Error",
-        description: "User not found",
+        title: "Authentication Error",
+        description: "Please log in to continue",
         variant: "destructive",
       });
       return;
@@ -64,8 +87,20 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
     setIsVerifying(true);
     
     try {
-      // Verify the Solana transaction
-      const verification = await verifySolanaTransaction(trimmedTxHash, price);
+      // Verify the transaction via backend API
+      const verificationResponse = await fetch("/api/verify-transaction", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          txHash: trimmedTxHash,
+          expectedAmountUSD: price,
+          nftType,
+        }),
+      });
+
+      const verification = await verificationResponse.json();
       
       if (verification.valid) {
         // Create the NFT reservation

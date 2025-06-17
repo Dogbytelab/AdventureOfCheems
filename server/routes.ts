@@ -232,21 +232,30 @@ router.post("/verify-transaction", async (req: Request, res: Response) => {
     
     if (!txHash || !expectedAmountUSD || !nftType) {
       return res.status(400).json({ 
-        message: "Missing required parameters: txHash, expectedAmountUSD, nftType" 
+        valid: false,
+        error: "Missing required parameters: txHash, expectedAmountUSD, nftType" 
       });
     }
 
-    // Import verification function dynamically to avoid circular dependencies
-    const { verifySolanaTransaction } = await import("../client/src/lib/solana");
-    
+    // Check if transaction hash is already used
+    const isUsed = await storage.isTransactionHashUsed(txHash);
+    if (isUsed) {
+      return res.json({
+        valid: false,
+        error: "Transaction hash has already been used"
+      });
+    }
+
+    // Use proper Solana verification
+    const { verifySolanaTransaction } = await import("./solanaVerification");
     const verification = await verifySolanaTransaction(txHash, expectedAmountUSD, nftType);
     
     res.json(verification);
   } catch (error) {
     console.error("Error verifying transaction:", error);
     res.status(500).json({ 
-      message: "Transaction verification failed",
-      error: error instanceof Error ? error.message : "Unknown error"
+      valid: false,
+      error: error instanceof Error ? error.message : "Transaction verification failed"
     });
   }
 });
