@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,8 +24,30 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
   const [processingStates, setProcessingStates] = useState<Record<string, boolean>>({});
   const [walletConnected, setWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [nftSupply, setNftSupply] = useState<Record<string, { sold: number; remaining: number }>>({
+    normie: { sold: 0, remaining: 25 },
+    sigma: { sold: 0, remaining: 5 },
+    chad: { sold: 0, remaining: 1 }
+  });
 
   const RECIPIENT_WALLET = "BmzAXDfy6rvSgj4BiZ7R8eEr83S2VpCMKVYwZ3EdgTnp";
+
+  // Fetch NFT supply data on component mount
+  useEffect(() => {
+    const fetchNFTSupply = async () => {
+      try {
+        const response = await fetch('/api/nft-supply');
+        if (response.ok) {
+          const supplyData = await response.json();
+          setNftSupply(supplyData);
+        }
+      } catch (error) {
+        console.error('Failed to fetch NFT supply:', error);
+      }
+    };
+    
+    fetchNFTSupply();
+  }, []);
 
   const nftTypes = [
     {
@@ -143,6 +165,15 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
         description: `Your ${nftType.toUpperCase()} NFT has been reserved. Transaction: ${txHash.slice(0, 8)}...`,
       });
 
+      // Update local supply count
+      setNftSupply(prev => ({
+        ...prev,
+        [nftType]: {
+          sold: prev[nftType].sold + 1,
+          remaining: prev[nftType].remaining - 1
+        }
+      }));
+
       // Call the parent callback
       onReserveNFT(nftType, price);
 
@@ -217,8 +248,13 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                   <h3 className="text-2xl font-retro text-accent mb-2">{nft.name}</h3>
                   <p className="text-text-secondary text-sm mb-3">{nft.description}</p>
                   <div className="text-3xl font-bold text-success mb-2">${nft.price}</div>
-                  <div className="text-sm text-text-secondary">
-                    Limited to {nft.limit} NFTs
+                  <div className="text-sm text-text-secondary mb-1">
+                    Supply: {nft.limit} Total
+                  </div>
+                  <div className="text-sm font-medium">
+                    <span className="text-red-400">Sold: {nftSupply[nft.type]?.sold || 0}</span>
+                    <span className="mx-2">•</span>
+                    <span className="text-green-400">Remaining: {nftSupply[nft.type]?.remaining || nft.limit}</span>
                   </div>
                 </div>
 
@@ -234,13 +270,18 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
 
                   <Button
                     onClick={() => handlePhantomPayment(nft.type, nft.price)}
-                    disabled={processingStates[nft.type] || !walletConnected}
+                    disabled={
+                      processingStates[nft.type] || 
+                      !walletConnected || 
+                      (nftSupply[nft.type]?.remaining || nft.limit) <= 0
+                    }
                     className={`w-full ${nft.buttonColor} text-white font-bold py-3 px-6 retro-button ${
                       nft.rare ? "pulse-glow" : ""
                     }`}
                   >
                     {processingStates[nft.type] ? "Processing..." : 
                      !walletConnected ? "Connect Wallet First" :
+                     (nftSupply[nft.type]?.remaining || nft.limit) <= 0 ? "SOLD OUT" :
                      "Reserve with Phantom"}
                   </Button>
                 </div>

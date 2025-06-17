@@ -202,6 +202,29 @@ router.post("/nft-reservations/:userUid", async (req: Request, res: Response) =>
   }
 });
 
+// NFT supply endpoint
+router.get("/nft-supply", async (req: Request, res: Response) => {
+  try {
+    const nftTypes = ['normie', 'sigma', 'chad'];
+    const nftLimits = { normie: 25, sigma: 5, chad: 1 };
+    const supply: Record<string, { sold: number; remaining: number }> = {};
+
+    for (const nftType of nftTypes) {
+      const sold = await storage.getNFTReservationCountByType(nftType);
+      const limit = nftLimits[nftType as keyof typeof nftLimits];
+      supply[nftType] = {
+        sold,
+        remaining: Math.max(0, limit - sold)
+      };
+    }
+
+    res.json(supply);
+  } catch (error) {
+    console.error("Error getting NFT supply:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // Add verification endpoint
 router.post("/verify-transaction", async (req: Request, res: Response) => {
   try {
