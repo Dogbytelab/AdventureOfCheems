@@ -38,19 +38,22 @@ export default function HomeTab() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <h1 className="text-5xl lg:text-7xl font-retro text-accent mb-6 tracking-wider">
-          AOC GAME
+        <h1 className="text-2xl lg:text-5xl font-retro text-accent mb-6 tracking-wider">
+          ADVENTURES OF CHEEMS
         </h1>
         <p className="text-xl text-text-secondary mb-8 max-w-2xl mx-auto leading-relaxed">
-          ADVENTURE OF CHEEMS (AOC) IS A 2D PLATFORMER PACKED WITH MEMES, MYSTERIES, AND MADNESS! 
-          LEVELS, COLLECT COINS, AND EXPLORE THE PLAYGROUND. EQUIPPED WITH THE POWER OF MEMES AND 
-          IMAGINE THAT WILL HELP YOU OVERCOME OBSTACLES AND WIN BONUS YOU CLOSER TO MEME SUPREMACY.
+          ADVENTURE OF CHEEMS ( AOC ) IS A 2D PLATFORMER PACKED WITH MEMES,
+          MYSTERIES, AND MADNESS! LEVELS, COLLECT COINS, AND EXPLORE THE
+          PLAYGROUND. EQUIPPED WITH THE POWER OF MEMES AND IMAGINE THAT WILL
+          HELP YOU OVERCOME OBSTACLES AND WIN BONUS YOU CLOSER TO MEME
+          SUPREMACY.
         </p>
         <p className="text-lg text-warning mb-8">
-          ARE YOU READY TO MAKE CHEEMS PROUD AND BECOME A MEME LORD?
+          JOIN CHEEMS ON THE ULTIMATE MEME ADVENTURE! "PLAY, COLLECT, EARN, AND
+          RULE THE LEADERBOARD!
         </p>
       </motion.div>
-      
+
       {/* Download Button */}
       <motion.div
         className="text-center mb-12"
@@ -63,14 +66,24 @@ export default function HomeTab() {
           className="bg-accent hover:bg-accent/80 text-white font-retro text-xl px-12 py-6 rounded-2xl retro-button pulse-glow"
           size="lg"
         >
-          <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <svg
+            className="w-6 h-6 mr-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
           </svg>
           DOWNLOAD GAME
         </Button>
-        <p className="text-sm text-text-secondary mt-4">Download APK for Android (200MB)</p>
+        <p className="text-sm text-text-secondary mt-4">LETS GO!</p>
       </motion.div>
-      
+
       {/* Social Links */}
       <motion.div
         className="flex justify-center space-x-6"

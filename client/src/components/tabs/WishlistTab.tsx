@@ -58,15 +58,18 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
     const detectWallets = () => {
       const wallets = detectAvailableWallets();
       setAvailableWallets(wallets);
-      console.log('Available wallets:', wallets.map(w => w.name));
+      console.log(
+        "Available wallets:",
+        wallets.map((w) => w.name),
+      );
     };
 
     fetchNFTSupply();
     detectWallets();
-    
+
     // Check for wallet connections every 2 seconds
     const walletCheckInterval = setInterval(detectWallets, 2000);
-    
+
     return () => clearInterval(walletCheckInterval);
   }, []);
 
@@ -77,7 +80,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       price: 0.05,
       limit: 25,
       totalSupply: 25000,
-      description: "Entry-level NFT for new holders",
+      description: "",
       buttonColor:
         "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700",
       rare: false,
@@ -88,7 +91,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       price: 25,
       limit: 5,
       totalSupply: 5000,
-      description: "Mid-tier NFT with exclusive benefits",
+      description: "",
       buttonColor:
         "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
       rare: true,
@@ -99,7 +102,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       price: 269,
       limit: 1,
       totalSupply: 669,
-      description: "Ultra-rare NFT for elite holders",
+      description: "",
       buttonColor:
         "bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700",
       rare: true,
@@ -149,11 +152,11 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
 
     try {
       // Get current SOL price
-      const solPrice = await getCurrentSOLPrice().catch(error => {
-        console.error('Failed to get SOL price:', error);
-        throw new Error('Failed to get current SOL price. Please try again.');
+      const solPrice = await getCurrentSOLPrice().catch((error) => {
+        console.error("Failed to get SOL price:", error);
+        throw new Error("Failed to get current SOL price. Please try again.");
       });
-      
+
       const solAmount = calculateSOLAmount(price, solPrice);
 
       toast({
@@ -215,24 +218,35 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
 
       let errorMessage = "Failed to process payment. Please try again.";
 
-      if (error.message?.includes("User rejected") || error.message?.includes("cancelled")) {
+      if (
+        error.message?.includes("User rejected") ||
+        error.message?.includes("cancelled")
+      ) {
         errorMessage = "Transaction was cancelled by user.";
-      } else if (error.message?.includes("Insufficient funds") || error.message?.includes("insufficient")) {
+      } else if (
+        error.message?.includes("Insufficient funds") ||
+        error.message?.includes("insufficient")
+      ) {
         errorMessage = "Insufficient SOL balance in your wallet.";
       } else if (error.message?.includes("Phantom wallet not found")) {
-        errorMessage = "Phantom wallet not found. Please install Phantom wallet extension.";
+        errorMessage =
+          "Phantom wallet not found. Please install Phantom wallet extension.";
       } else if (error.message?.includes("not connected")) {
-        errorMessage = "Wallet not connected. Please reconnect your Phantom wallet.";
+        errorMessage =
+          "Wallet not connected. Please reconnect your Phantom wallet.";
       } else if (error.message?.includes("already used")) {
-        errorMessage = "This transaction has already been used. Please try with a new transaction.";
+        errorMessage =
+          "This transaction has already been used. Please try with a new transaction.";
       } else if (error.message?.includes("sold out")) {
         errorMessage = `${nftType.toUpperCase()} NFTs are sold out.`;
       } else if (error.message?.includes("already have")) {
         errorMessage = `You already have a reservation for ${nftType.toUpperCase()} NFT.`;
       } else if (error.message?.includes("verification failed")) {
-        errorMessage = "Transaction verification failed. Please contact support.";
+        errorMessage =
+          "Transaction verification failed. Please contact support.";
       } else if (error.message?.includes("SOL price")) {
-        errorMessage = "Failed to get current SOL price. Please try again in a moment.";
+        errorMessage =
+          "Failed to get current SOL price. Please try again in a moment.";
       } else if (error.message?.includes("Failed to verify transaction")) {
         errorMessage = "Transaction verification failed. Please try again.";
       } else if (error.message?.includes("Failed to create NFT reservation")) {
@@ -260,10 +274,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
         <h2 className="text-4xl font-retro text-accent mb-4">
           Reserve Your NFT
         </h2>
-        <p className="text-text-secondary mb-6">
-          Secure your spot in the DogByte ecosystem with exclusive NFT
-          reservations
-        </p>
+        <p className="text-text-secondary mb-6"></p>
 
         {!walletConnected ? (
           <div className="mb-8">
@@ -273,22 +284,24 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                   onClick={handleConnectWallet}
                   className="bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent text-white font-bold py-3 px-8 retro-button mb-4"
                 >
-                  Connect {availableWallets[0]?.name || 'Solana'} Wallet
+                  Connect {availableWallets[0]?.name || "Solana"} Wallet
                 </Button>
                 <div className="text-sm text-text-secondary">
-                  Detected wallets: {availableWallets.map(w => w.name).join(', ')}
+                  Detected wallets:{" "}
+                  {availableWallets.map((w) => w.name).join(", ")}
                 </div>
               </div>
             ) : (
               <div>
                 <Button
-                  onClick={() => window.open('https://phantom.app/', '_blank')}
+                  onClick={() => window.open("https://phantom.app/", "_blank")}
                   className="bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent text-white font-bold py-3 px-8 retro-button mb-4"
                 >
                   Install Solana Wallet
                 </Button>
                 <div className="text-sm text-text-secondary">
-                  No Solana wallet detected. Please install Phantom, Solflare, or Backpack.
+                  No Solana wallet detected. Please install Phantom, Solflare,
+                  or Backpack.
                 </div>
               </div>
             )}
@@ -353,16 +366,11 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
 
                 <div className="space-y-3">
                   <div className="bg-secondary/50 rounded-lg p-3">
-                    <div className="text-xs text-text-secondary mb-1">
-                      Benefits Include:
-                    </div>
+                    <div className="text-xs text-text-secondary mb-1"> </div>
                     <div className="text-sm">
-                      {nft.type === "normie" &&
-                        "• Early access to game beta\n• Basic in-game rewards"}
-                      {nft.type === "sigma" &&
-                        "• Premium game features\n• Enhanced rewards\n• Exclusive Discord access"}
-                      {nft.type === "chad" &&
-                        "• VIP game access\n• Maximum rewards\n• Direct dev communication\n• Special events"}
+                      {nft.type === "normie" && ""}
+                      {nft.type === "sigma" && ""}
+                      {nft.type === "chad" && ""}
                     </div>
                   </div>
 
@@ -384,7 +392,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                         : (nftSupply[nft.type]?.remaining || nft.totalSupply) <=
                             0
                           ? "SOLD OUT"
-                          : `Reserve with ${walletName || 'Wallet'}`}
+                          : `Reserve with ${walletName || "Wallet"}`}
                   </Button>
                 </div>
               </CardContent>
@@ -478,7 +486,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
             />
           </svg>
           NFT reservations are processed securely through Solana blockchain
-          verification. You'll receive your NFT after game launch.
+          verification.
         </p>
       </motion.div>
     </div>

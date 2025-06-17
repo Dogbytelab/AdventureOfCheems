@@ -288,12 +288,12 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
           // If user reaches milestone and doesn't already have a wishlist, give free Normie
           if (shouldRewardNormie && !userData.wishlist?.type) {
             updateData['wishlist/type'] = 'normie';
-            updateData['wishlist/amount'] = 5;
+            updateData['wishlist/amount'] = 1;
             updateData['wishlist/txHash'] = `AUTO_REWARD_${newInviteCount}_INVITES`;
             updateData['wishlist/confirmed'] = true;
             updateData['wishlist/timestamp'] = serverTimestamp();
             
-            console.log(`Auto-rewarded Normie wishlist to user ${uid} for reaching ${newInviteCount} invites`);
+            console.log(`Auto-rewarded 1 Normie NFT to user ${uid} for reaching ${newInviteCount} invites`);
           }
 
           await update(ref(rtdb, `users/${uid}`), updateData);
@@ -426,15 +426,20 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
 
   async getNFTReservations(userId: string): Promise<NFTReservation[]> {
     try {
-      const reservationsRef = ref(rtdb, 'nft_reservations');
-      const snapshot = await get(reservationsRef);
+      console.log(`Getting NFT reservations for user: ${userId}`);
+      const userReservations: NFTReservation[] = [];
       
-      if (snapshot.exists()) {
-        const reservationsData = snapshot.val();
-        const userReservations: NFTReservation[] = [];
+      // Check new nft_reservations structure first
+      const reservationsRef = ref(rtdb, 'nft_reservations');
+      const reservationsSnapshot = await get(reservationsRef);
+      
+      if (reservationsSnapshot.exists()) {
+        const reservationsData = reservationsSnapshot.val();
+        console.log('Found nft_reservations data:', Object.keys(reservationsData));
         
         Object.entries(reservationsData).forEach(([id, data]: [string, any]) => {
           if (data.userId === userId) {
+            console.log(`Found reservation for user ${userId}:`, data);
             userReservations.push({
               id: id,
               userId: data.userId,
@@ -449,10 +454,42 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
             });
           }
         });
-        
-        return userReservations;
+      } else {
+        console.log('No nft_reservations data found');
       }
-      return [];
+      
+      // Also check legacy wishlist structure for backward compatibility
+      const wishlistRef = ref(rtdb, `users/${userId}/wishlist`);
+      const wishlistSnapshot = await get(wishlistRef);
+      
+      if (wishlistSnapshot.exists()) {
+        const wishlist = wishlistSnapshot.val();
+        console.log(`Found wishlist for user ${userId}:`, wishlist);
+        if (wishlist.type && wishlist.txHash) {
+          // Check if this wishlist reservation is not already in the new structure
+          const existingReservation = userReservations.find(r => r.txHash === wishlist.txHash);
+          if (!existingReservation) {
+            console.log(`Adding wishlist reservation for user ${userId}`);
+            userReservations.push({
+              id: `${userId}_wishlist`,
+              userId: userId,
+              nftType: wishlist.type,
+              price: wishlist.amount || 0,
+              txHash: wishlist.txHash,
+              walletAddress: '',
+              solAmount: '0',
+              verified: wishlist.confirmed || false,
+              verificationAttempts: 0,
+              createdAt: wishlist.timestamp ? new Date(wishlist.timestamp) : new Date()
+            });
+          }
+        }
+      } else {
+        console.log(`No wishlist found for user ${userId}`);
+      }
+      
+      console.log(`Returning ${userReservations.length} reservations for user ${userId}`);
+      return userReservations;
     } catch (error) {
       console.error('Error getting NFT reservations:', error);
       return [];

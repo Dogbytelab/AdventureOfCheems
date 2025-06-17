@@ -119,7 +119,9 @@ router.post("/user-tasks/:userUid/:taskId/claim", async (req: Request, res: Resp
 // NFT Reservations endpoints - using UID instead of ID
 router.get("/nft-reservations/:userUid", async (req: Request, res: Response) => {
   try {
+    console.log(`API: Getting NFT reservations for userUid: ${req.params.userUid}`);
     const reservations = await storage.getNFTReservations(req.params.userUid);
+    console.log(`API: Found ${reservations.length} reservations`);
     res.json(reservations);
   } catch (error) {
     console.error("Error getting NFT reservations:", error);

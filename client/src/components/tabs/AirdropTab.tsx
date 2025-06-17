@@ -3,10 +3,10 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function AirdropTab() {
   const criteria = [
-    "Complete social media tasks",
+    "Complete all tasks",
     "Accumulate AOC Points",
     "Refer active users",
-    "Reserve NFTs (bonus eligibility)",
+    "Wishlist NFTs (bonus eligibility)",
   ];
 
   return (
@@ -32,10 +32,12 @@ export default function AirdropTab() {
           COMING SOON...
         </motion.h2>
         <p className="text-xl text-text-secondary max-w-2xl mx-auto">
-          The AOC token airdrop is in development. Stay tuned for more information about the token distribution and eligibility criteria.
+          Stay tuned for detailed information on token distribution and
+          eligibility criteria. For timely updates and official announcements,
+          we recommend joining our Telegram community.
         </p>
       </motion.div>
-      
+
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -43,7 +45,9 @@ export default function AirdropTab() {
       >
         <Card className="glass-effect border-accent/30">
           <CardContent className="pt-6">
-            <h3 className="text-2xl font-retro text-accent mb-4">AIRDROP CRITERIA</h3>
+            <h3 className="text-2xl font-retro text-accent mb-4">
+              AIRDROP CRITERIA
+            </h3>
             <div className="space-y-3 text-left max-w-md mx-auto">
               {criteria.map((criterion, index) => (
                 <motion.div
@@ -53,8 +57,18 @@ export default function AirdropTab() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.4, delay: 0.5 + index * 0.1 }}
                 >
-                  <svg className="w-5 h-5 text-success flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-5 h-5 text-success flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                   <span>{criterion}</span>
                 </motion.div>
