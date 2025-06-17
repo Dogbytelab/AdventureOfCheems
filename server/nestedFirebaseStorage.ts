@@ -426,22 +426,31 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
 
   async getNFTReservations(userId: string): Promise<NFTReservation[]> {
     try {
-      const wishlistRef = ref(rtdb, `users/${userId}/wishlist`);
-      const snapshot = await get(wishlistRef);
-
+      const reservationsRef = ref(rtdb, 'nft_reservations');
+      const snapshot = await get(reservationsRef);
+      
       if (snapshot.exists()) {
-        const wishlist = snapshot.val();
-        if (wishlist.type && wishlist.txHash) {
-          return [{
-            id: `${userId}_wishlist`,
-            userId: userId,
-            nftType: wishlist.type,
-            price: wishlist.amount || 0,
-            txHash: wishlist.txHash,
-            verified: wishlist.confirmed || false,
-            createdAt: wishlist.timestamp ? new Date(wishlist.timestamp) : new Date(),
-          }];
-        }
+        const reservationsData = snapshot.val();
+        const userReservations: NFTReservation[] = [];
+        
+        Object.entries(reservationsData).forEach(([id, data]: [string, any]) => {
+          if (data.userId === userId) {
+            userReservations.push({
+              id: id,
+              userId: data.userId,
+              nftType: data.nftType,
+              price: data.price,
+              txHash: data.txHash,
+              walletAddress: data.walletAddress || '',
+              solAmount: data.solAmount || '0',
+              verified: data.verified || false,
+              verificationAttempts: data.verificationAttempts || 0,
+              createdAt: data.createdAt ? new Date(data.createdAt) : new Date()
+            });
+          }
+        });
+        
+        return userReservations;
       }
       return [];
     } catch (error) {
