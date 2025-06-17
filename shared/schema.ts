@@ -44,6 +44,9 @@ export const nftReservations = pgTable("nft_reservations", {
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
+  referralCode: true, // Omit referralCode as it's generated server-side
+}).extend({
+  inviteCode: z.string().optional().nullable(), // Make invite code explicitly optional
 });
 
 export const insertTaskSchema = createInsertSchema(tasks).omit({

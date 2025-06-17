@@ -13,9 +13,16 @@ import {
   type InsertNFTReservation
 } from "@shared/schema";
 
+type CreateUserData = {
+  uid: string;
+  email: string;
+  referralCode: string;
+  inviteCode?: string | null;
+};
+
 export interface IStorage {
   getUserByUid(uid: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  createUser(user: CreateUserData): Promise<User>;
   generateReferralCode(): Promise<string>;
   incrementInviteCount(referralCode: string): Promise<void>;
   
@@ -100,14 +107,14 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(user => user.uid === uid);
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(userData: CreateUserData): Promise<User> {
     const id = this.currentUserId++;
     const user: User = {
       id,
-      uid: insertUser.uid,
-      email: insertUser.email,
-      referralCode: insertUser.referralCode,
-      inviteCode: insertUser.inviteCode ?? null,
+      uid: userData.uid,
+      email: userData.email,
+      referralCode: userData.referralCode,
+      inviteCode: userData.inviteCode ?? null,
       aocPoints: 0,
       inviteCount: 0,
       createdAt: new Date(),

@@ -38,11 +38,18 @@ export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
 
     setIsSubmitting(true);
     try {
-      await apiRequest("POST", "/api/users", {
+      const payload: any = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        inviteCode: inviteCode.trim() || null, // Allow empty invite code
-      });
+      };
+      
+      // Only include inviteCode if it's not empty
+      const trimmedCode = inviteCode.trim();
+      if (trimmedCode) {
+        payload.inviteCode = trimmedCode;
+      }
+      
+      await apiRequest("POST", "/api/users", payload);
       
       setIsNewUser(false);
       toast({
@@ -61,6 +68,7 @@ export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
   };
 
   const handleSkipInviteCode = async () => {
+    setInviteCode(""); // Clear the invite code before submitting
     await handleInviteCodeSubmit();
   };
 

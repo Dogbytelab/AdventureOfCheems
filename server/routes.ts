@@ -32,14 +32,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate unique referral code
       const referralCode = await storage.generateReferralCode();
       
+      // Clean up invite code - convert empty string to null
+      const inviteCode = validatedData.inviteCode && validatedData.inviteCode.trim() 
+        ? validatedData.inviteCode.trim() 
+        : null;
+      
       const user = await storage.createUser({
         ...validatedData,
         referralCode,
+        inviteCode,
       });
       
       // If user used an invite code, update the referrer's invite count
-      if (validatedData.inviteCode) {
-        await storage.incrementInviteCount(validatedData.inviteCode);
+      if (inviteCode) {
+        await storage.incrementInviteCount(inviteCode);
       }
       
       res.status(201).json(user);
