@@ -1,11 +1,7 @@
-import { 
-  users, 
-  tasks, 
-  userTasks, 
-  nftReservations,
-  type User, 
-  type InsertUser, 
-  type Task, 
+import {
+  type User,
+  type InsertUser,
+  type Task,
   type InsertTask,
   type UserTask,
   type InsertUserTask,
@@ -57,23 +53,22 @@ export class MemStorage implements IStorage {
     this.currentUserTaskId = 1;
     this.currentNFTReservationId = 1;
     
-    // Initialize with default tasks
     this.initializeDefaultTasks();
   }
 
   private initializeDefaultTasks() {
-    const defaultTasks: InsertTask[] = [
+    const defaultTasks = [
       {
         name: "Follow on X",
-        description: "Follow @Dogbytelab on X (Twitter)",
+        description: "Follow our official X account",
         platform: "twitter",
-        url: "https://twitter.com/Dogbytelab",
+        url: "https://x.com/DogByteLabz",
         points: 1000,
         isActive: true,
       },
       {
         name: "Follow on Instagram",
-        description: "Follow @aoc.offical on Instagram",
+        description: "Follow our Instagram for updates",
         platform: "instagram",
         url: "https://instagram.com/aoc.offical",
         points: 1000,
@@ -125,7 +120,6 @@ export class MemStorage implements IStorage {
   }
 
   async generateReferralCode(): Promise<string> {
-    // Generate a unique 6-character alphanumeric code
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
     
@@ -134,16 +128,23 @@ export class MemStorage implements IStorage {
       for (let i = 0; i < 6; i++) {
         result += characters.charAt(Math.floor(Math.random() * characters.length));
       }
-    } while (Array.from(this.users.values()).some(user => user.referralCode === result));
+      
+      // Check if code already exists
+      const existingUser = Array.from(this.users.values()).find(user => user.referralCode === result);
+      if (!existingUser) {
+        break;
+      }
+    } while (true);
     
     return result;
   }
 
   async incrementInviteCount(referralCode: string): Promise<void> {
-    const referrer = Array.from(this.users.values()).find(user => user.referralCode === referralCode);
-    if (referrer) {
-      referrer.inviteCount++;
-      this.users.set(referrer.id, referrer);
+    const user = Array.from(this.users.values()).find(u => u.referralCode === referralCode);
+    if (user) {
+      user.inviteCount += 1;
+      user.aocPoints += 100; // +100 AOC points per invite
+      this.users.set(user.id, user);
     }
   }
 
@@ -178,7 +179,7 @@ export class MemStorage implements IStorage {
       return existingUserTask;
     }
 
-    // Create or update user task
+    // Create user task
     const userTask: UserTask = {
       id: (this.currentUserTaskId++).toString(),
       userId,
@@ -201,7 +202,7 @@ export class MemStorage implements IStorage {
     const nftReservation: NFTReservation = {
       id: id.toString(),
       ...reservation,
-      verified: false, // Will be verified manually or by admin
+      verified: false,
       createdAt: new Date(),
     };
     this.nftReservations.set(nftReservation.id, nftReservation);

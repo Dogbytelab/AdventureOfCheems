@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 
 export default function HomeTab() {
   const handleDownloadGame = () => {
-    // Open the game download link in a new tab
-    window.open("https://your-game-download-url.com/game.apk", "_blank");
+    // Open the game download link in a new tab - replace with actual URL when ready
+    const gameDownloadUrl = "https://releases.dogbytelab.com/aoc-game.apk"; // Placeholder URL
+    window.open(gameDownloadUrl, "_blank");
   };
 
   const socialLinks = [
