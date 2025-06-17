@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, signInWithRedirect, GoogleAuthProvider, getRedirectResult, signOut } from "firebase/auth";
+import { getAuth, signInWithPopup, signInWithRedirect, GoogleAuthProvider, getRedirectResult, signOut } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -20,9 +20,11 @@ const provider = new GoogleAuthProvider();
 
 export const signInWithGmail = async () => {
   try {
-    console.log("Attempting Gmail sign-in...");
-    await signInWithRedirect(auth, provider);
-  } catch (error) {
+    console.log("Attempting Gmail sign-in with popup...");
+    const result = await signInWithPopup(auth, provider);
+    console.log("Gmail sign-in successful:", result.user.email);
+    return result;
+  } catch (error: any) {
     console.error("Gmail sign-in error:", error);
     throw error;
   }
