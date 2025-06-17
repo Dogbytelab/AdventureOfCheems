@@ -2,12 +2,8 @@ import {
   ref, 
   set, 
   get, 
-  push, 
-  query, 
-  orderByChild, 
-  equalTo,
   update,
-  child
+  serverTimestamp
 } from "firebase/database";
 import { rtdb } from "./firebase";
 import { 
@@ -16,35 +12,9 @@ import {
   type UserTask, 
   type NFTReservation 
 } from "@shared/schema";
+import { IFirebaseStorage } from "./firebaseStorage";
 
-export interface IFirebaseStorage {
-  getUserByUid(uid: string): Promise<User | undefined>;
-  createUser(userData: {
-    uid: string;
-    email: string;
-    referralCode: string;
-    inviteCode?: string | null;
-  }): Promise<User>;
-  generateReferralCode(): Promise<string>;
-  incrementInviteCount(referralCode: string): Promise<void>;
-  
-  getAllTasks(): Promise<Task[]>;
-  getUserTasks(userId: string): Promise<UserTask[]>;
-  getUserTask(userId: string, taskId: string): Promise<UserTask | undefined>;
-  completeTask(userId: string, taskId: string): Promise<UserTask>;
-  
-  createNFTReservation(reservation: {
-    userId: string;
-    nftType: string;
-    price: number;
-    txHash: string;
-  }): Promise<NFTReservation>;
-  getNFTReservations(userId: string): Promise<NFTReservation[]>;
-  
-  updateUserPoints(userId: string, points: number): Promise<void>;
-}
-
-export class FirebaseStorage implements IFirebaseStorage {
+export class NestedFirebaseStorage implements IFirebaseStorage {
   
   async getUserByUid(uid: string): Promise<User | undefined> {
     try {
@@ -53,7 +23,6 @@ export class FirebaseStorage implements IFirebaseStorage {
       
       if (snapshot.exists()) {
         const userData = snapshot.val();
-        // Convert nested structure to flat User object
         return {
           id: uid,
           uid: uid,
@@ -62,7 +31,7 @@ export class FirebaseStorage implements IFirebaseStorage {
           inviteCode: userData.referral?.invitedBy || null,
           aocPoints: userData.aocPoints?.total || 0,
           inviteCount: userData.referral?.inviteCount || 0,
-          createdAt: new Date() // We'll need to add this to the structure
+          createdAt: userData.createdAt ? new Date(userData.createdAt) : new Date()
         };
       }
       return undefined;
@@ -106,12 +75,11 @@ export class FirebaseStorage implements IFirebaseStorage {
           confirmed: false,
           timestamp: null
         },
-        createdAt: Date.now()
+        createdAt: serverTimestamp()
       };
       
       await set(userRef, nestedUserData);
       
-      // Return flat User object for compatibility
       return {
         id: userData.uid,
         uid: userData.uid,
@@ -138,12 +106,25 @@ export class FirebaseStorage implements IFirebaseStorage {
         result += characters.charAt(Math.floor(Math.random() * characters.length));
       }
       
-      // Check if code already exists
+      // Check if code already exists by scanning all users
       const usersRef = ref(rtdb, 'users');
-      const codeQuery = query(usersRef, orderByChild('referralCode'), equalTo(result));
-      const snapshot = await get(codeQuery);
+      const snapshot = await get(usersRef);
       
-      if (!snapshot.exists()) {
+      if (snapshot.exists()) {
+        const users = snapshot.val();
+        let codeExists = false;
+        
+        for (const userData of Object.values(users)) {
+          if ((userData as any).referral?.code === result) {
+            codeExists = true;
+            break;
+          }
+        }
+        
+        if (!codeExists) {
+          break;
+        }
+      } else {
         break;
       }
     } while (true);
@@ -154,17 +135,22 @@ export class FirebaseStorage implements IFirebaseStorage {
   async incrementInviteCount(referralCode: string): Promise<void> {
     try {
       const usersRef = ref(rtdb, 'users');
-      const userQuery = query(usersRef, orderByChild('referralCode'), equalTo(referralCode));
-      const snapshot = await get(userQuery);
+      const snapshot = await get(usersRef);
       
       if (snapshot.exists()) {
-        const userId = Object.keys(snapshot.val())[0];
-        const userData = Object.values(snapshot.val())[0] as User;
-        
-        await update(ref(rtdb, `users/${userId}`), {
-          inviteCount: userData.inviteCount + 1,
-          aocPoints: userData.aocPoints + 100 // +100 AOC points per invite
-        });
+        const users = snapshot.val();
+        for (const [uid, userData] of Object.entries(users)) {
+          if ((userData as any).referral?.code === referralCode) {
+            const currentCount = (userData as any).referral?.inviteCount || 0;
+            const currentPoints = (userData as any).aocPoints?.total || 0;
+            
+            await update(ref(rtdb, `users/${uid}`), {
+              'referral/inviteCount': currentCount + 1,
+              'aocPoints/total': currentPoints + 100
+            });
+            break;
+          }
+        }
       }
     } catch (error) {
       console.error('Error incrementing invite count:', error);
@@ -180,7 +166,6 @@ export class FirebaseStorage implements IFirebaseStorage {
         return Object.values(snapshot.val()) as Task[];
       }
       
-      // Initialize default tasks if none exist
       await this.initializeDefaultTasks();
       const newSnapshot = await get(tasksRef);
       return Object.values(newSnapshot.val()) as Task[];
@@ -193,6 +178,7 @@ export class FirebaseStorage implements IFirebaseStorage {
   private async initializeDefaultTasks(): Promise<void> {
     const defaultTasks = [
       {
+        id: "1",
         name: "Follow on X",
         description: "Follow our official X account",
         platform: "twitter",
@@ -201,6 +187,7 @@ export class FirebaseStorage implements IFirebaseStorage {
         isActive: true,
       },
       {
+        id: "2", 
         name: "Follow on Instagram",
         description: "Follow our Instagram for updates",
         platform: "instagram",
@@ -209,8 +196,9 @@ export class FirebaseStorage implements IFirebaseStorage {
         isActive: true,
       },
       {
+        id: "3",
         name: "Join Telegram",
-        description: "Join our official Telegram channel",
+        description: "Join our official Telegram channel", 
         platform: "telegram",
         url: "https://t.me/AOCoffical",
         points: 1000,
@@ -219,24 +207,39 @@ export class FirebaseStorage implements IFirebaseStorage {
     ];
 
     const tasksRef = ref(rtdb, 'tasks');
-    for (const taskData of defaultTasks) {
-      const newTaskRef = push(tasksRef);
-      const task: Task = {
-        id: newTaskRef.key!,
-        ...taskData,
-      };
-      await set(newTaskRef, task);
-    }
+    const tasksData: { [key: string]: Task } = {};
+    
+    defaultTasks.forEach(task => {
+      tasksData[task.id] = task;
+    });
+    
+    await set(tasksRef, tasksData);
   }
 
   async getUserTasks(userId: string): Promise<UserTask[]> {
     try {
-      const userTasksRef = ref(rtdb, 'userTasks');
-      const userTaskQuery = query(userTasksRef, orderByChild('userId'), equalTo(userId));
-      const snapshot = await get(userTaskQuery);
+      const userRef = ref(rtdb, `users/${userId}/tasks`);
+      const snapshot = await get(userRef);
       
       if (snapshot.exists()) {
-        return Object.values(snapshot.val()) as UserTask[];
+        const tasks = snapshot.val();
+        const userTasks: UserTask[] = [];
+        
+        Object.entries(tasks).forEach(([taskField, completed]) => {
+          if (completed) {
+            const taskId = this.getTaskIdFromField(taskField);
+            userTasks.push({
+              id: `${userId}_${taskId}`,
+              userId,
+              taskId,
+              completed: true,
+              completedAt: new Date(),
+              points: 1000
+            });
+          }
+        });
+        
+        return userTasks;
       }
       return [];
     } catch (error) {
@@ -247,8 +250,21 @@ export class FirebaseStorage implements IFirebaseStorage {
 
   async getUserTask(userId: string, taskId: string): Promise<UserTask | undefined> {
     try {
-      const userTasks = await this.getUserTasks(userId);
-      return userTasks.find(ut => ut.userId === userId && ut.taskId === taskId);
+      const taskField = this.getTaskFieldName(taskId);
+      const userRef = ref(rtdb, `users/${userId}/tasks/${taskField}`);
+      const snapshot = await get(userRef);
+      
+      if (snapshot.exists() && snapshot.val() === true) {
+        return {
+          id: `${userId}_${taskId}`,
+          userId,
+          taskId,
+          completed: true,
+          completedAt: new Date(),
+          points: 1000
+        };
+      }
+      return undefined;
     } catch (error) {
       console.error('Error getting user task:', error);
       return undefined;
@@ -257,29 +273,26 @@ export class FirebaseStorage implements IFirebaseStorage {
 
   async completeTask(userUid: string, taskId: string): Promise<UserTask> {
     try {
-      // Get user by UID to get the user ID
-      const user = await this.getUserByUid(userUid);
-      if (!user) {
-        throw new Error('User not found');
-      }
+      const taskField = this.getTaskFieldName(taskId);
+      const currentPointsRef = ref(rtdb, `users/${userUid}/aocPoints/total`);
+      const currentPointsSnapshot = await get(currentPointsRef);
+      const currentPoints = currentPointsSnapshot.exists() ? currentPointsSnapshot.val() : 0;
       
-      const userTasksRef = ref(rtdb, 'userTasks');
-      const newUserTaskRef = push(userTasksRef);
+      const points = 1000;
       
-      const userTask: UserTask = {
-        id: newUserTaskRef.key!,
-        userId: user.id,
-        taskId,
+      await update(ref(rtdb, `users/${userUid}`), {
+        [`tasks/${taskField}`]: true,
+        'aocPoints/total': currentPoints + points
+      });
+      
+      return {
+        id: `${userUid}_${taskId}`,
+        userId: userUid,
+        taskId: taskId,
         completed: true,
         completedAt: new Date(),
+        points: points
       };
-      
-      await set(newUserTaskRef, userTask);
-      
-      // Award points to user
-      await this.updateUserPoints(userUid, 1000);
-      
-      return userTask;
     } catch (error) {
       console.error('Error completing task:', error);
       throw error;
@@ -293,16 +306,14 @@ export class FirebaseStorage implements IFirebaseStorage {
     txHash: string;
   }): Promise<NFTReservation> {
     try {
-      // Update wishlist in nested user structure
       await update(ref(rtdb, `users/${reservation.userId}/wishlist`), {
         type: reservation.nftType,
         amount: reservation.price,
         txHash: reservation.txHash,
         confirmed: false,
-        timestamp: Date.now()
+        timestamp: serverTimestamp()
       });
       
-      // Return NFTReservation for compatibility
       return {
         id: `${reservation.userId}_wishlist`,
         userId: reservation.userId,
@@ -320,12 +331,22 @@ export class FirebaseStorage implements IFirebaseStorage {
 
   async getNFTReservations(userId: string): Promise<NFTReservation[]> {
     try {
-      const reservationsRef = ref(rtdb, 'nftReservations');
-      const userReservationsQuery = query(reservationsRef, orderByChild('userId'), equalTo(userId));
-      const snapshot = await get(userReservationsQuery);
+      const wishlistRef = ref(rtdb, `users/${userId}/wishlist`);
+      const snapshot = await get(wishlistRef);
       
       if (snapshot.exists()) {
-        return Object.values(snapshot.val()) as NFTReservation[];
+        const wishlist = snapshot.val();
+        if (wishlist.type && wishlist.txHash) {
+          return [{
+            id: `${userId}_wishlist`,
+            userId: userId,
+            nftType: wishlist.type,
+            price: wishlist.amount || 0,
+            txHash: wishlist.txHash,
+            verified: wishlist.confirmed || false,
+            createdAt: wishlist.timestamp ? new Date(wishlist.timestamp) : new Date(),
+          }];
+        }
       }
       return [];
     } catch (error) {
@@ -334,24 +355,37 @@ export class FirebaseStorage implements IFirebaseStorage {
     }
   }
 
-  async updateUserPoints(userUid: string, pointsToAdd: number): Promise<void> {
+  async updateUserPoints(userId: string, points: number): Promise<void> {
     try {
-      const usersRef = ref(rtdb, 'users');
-      const userQuery = query(usersRef, orderByChild('uid'), equalTo(userUid));
-      const snapshot = await get(userQuery);
+      const currentPointsRef = ref(rtdb, `users/${userId}/aocPoints/total`);
+      const snapshot = await get(currentPointsRef);
+      const currentPoints = snapshot.exists() ? snapshot.val() : 0;
       
-      if (snapshot.exists()) {
-        const userKey = Object.keys(snapshot.val())[0];
-        const userData = Object.values(snapshot.val())[0] as User;
-        
-        await update(ref(rtdb, `users/${userKey}`), {
-          aocPoints: userData.aocPoints + pointsToAdd
-        });
-      }
+      await update(ref(rtdb, `users/${userId}/aocPoints`), {
+        total: currentPoints + points
+      });
     } catch (error) {
       console.error('Error updating user points:', error);
     }
   }
+
+  private getTaskFieldName(taskId: string): string {
+    const taskMap: { [key: string]: string } = {
+      '1': 'followX',
+      '2': 'followInsta', 
+      '3': 'joinTelegram'
+    };
+    return taskMap[taskId] || `task_${taskId}`;
+  }
+
+  private getTaskIdFromField(fieldName: string): string {
+    const fieldMap: { [key: string]: string } = {
+      'followX': '1',
+      'followInsta': '2',
+      'joinTelegram': '3'
+    };
+    return fieldMap[fieldName] || fieldName.replace('task_', '');
+  }
 }
 
-export const firebaseStorage = new FirebaseStorage();
+export const nestedFirebaseStorage = new NestedFirebaseStorage();

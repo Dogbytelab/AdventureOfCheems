@@ -1,12 +1,11 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { firebaseStorage } from "./firebaseStorage";
-import { storage } from "./storage";
+import { nestedFirebaseStorage } from "./nestedFirebaseStorage";
 import { insertUserSchema, insertUserTaskSchema, insertNFTReservationSchema } from "@shared/schema";
 import { z } from "zod";
 
-// Use Firebase Realtime Database for persistent storage
-const dataStorage = firebaseStorage;
+// Use nested Firebase Realtime Database structure
+const dataStorage = nestedFirebaseStorage;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get user by Firebase UID
