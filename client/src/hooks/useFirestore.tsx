@@ -44,7 +44,7 @@ export function useCreateNFTReservation() {
   });
 }
 
-export function useNFTReservations(userId: number) {
+export function useNFTReservations(userId: string) {
   return useQuery<NFTReservation[]>({
     queryKey: ["/api/nft-reservations", userId],
     enabled: !!userId,

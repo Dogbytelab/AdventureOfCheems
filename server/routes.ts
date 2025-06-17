@@ -49,7 +49,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If user used an invite code, update the referrer's invite count
       if (inviteCode) {
-        await dataStorage.incrementInviteCount(inviteCode);
+        try {
+          await dataStorage.incrementInviteCount(inviteCode);
+        } catch (error) {
+          console.error("Error incrementing invite count:", error);
+          // Don't fail user creation if invite code increment fails
+        }
       }
       
       res.status(201).json(user);
