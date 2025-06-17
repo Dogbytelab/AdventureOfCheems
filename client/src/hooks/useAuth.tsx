@@ -46,8 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Handle redirect result
     handleAuthRedirect().then((result) => {
       if (result?.user) {
-        // User just signed in
-        console.log("User signed in via redirect");
+        console.log("User signed in via redirect:", result.user.email);
       }
     }).catch((error) => {
       console.error("Auth redirect error:", error);

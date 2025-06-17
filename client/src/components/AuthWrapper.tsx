@@ -20,8 +20,17 @@ export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handleGmailLogin = () => {
-    signInWithGmail();
+  const handleGmailLogin = async () => {
+    try {
+      await signInWithGmail();
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login Failed",
+        description: "Unable to sign in with Gmail. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleInviteCodeSubmit = async () => {
