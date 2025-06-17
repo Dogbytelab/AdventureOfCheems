@@ -56,10 +56,17 @@ export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
       setUser(userData);
       setIsNewUser(false);
       
-      toast({
-        title: "Welcome!",
-        description: "Your account has been created successfully.",
-      });
+      if (trimmedCode) {
+        toast({
+          title: "Welcome!",
+          description: `Account created successfully! You used referral code: ${trimmedCode}`,
+        });
+      } else {
+        toast({
+          title: "Welcome!",
+          description: "Your account has been created successfully.",
+        });
+      }
       
     } catch (error) {
       toast({

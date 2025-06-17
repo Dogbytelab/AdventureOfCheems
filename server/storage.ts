@@ -111,7 +111,7 @@ export class MemStorage implements IStorage {
   async createUser(userData: CreateUserData): Promise<User> {
     const id = this.currentUserId++;
     const user: User = {
-      id,
+      id: id.toString(),
       uid: userData.uid,
       email: userData.email,
       referralCode: userData.referralCode,
@@ -120,7 +120,7 @@ export class MemStorage implements IStorage {
       inviteCount: 0,
       createdAt: new Date(),
     };
-    this.users.set(id, user);
+    this.users.set(user.id, user);
     return user;
   }
 
@@ -151,17 +151,17 @@ export class MemStorage implements IStorage {
     return Array.from(this.tasks.values()).filter(task => task.isActive);
   }
 
-  async getUserTasks(userId: number): Promise<UserTask[]> {
+  async getUserTasks(userId: string): Promise<UserTask[]> {
     return Array.from(this.userTasks.values()).filter(ut => ut.userId === userId);
   }
 
-  async getUserTask(userId: number, taskId: number): Promise<UserTask | undefined> {
+  async getUserTask(userId: string, taskId: string): Promise<UserTask | undefined> {
     return Array.from(this.userTasks.values()).find(
       ut => ut.userId === userId && ut.taskId === taskId
     );
   }
 
-  async completeTask(userId: number, taskId: number): Promise<UserTask> {
+  async completeTask(userId: string, taskId: string): Promise<UserTask> {
     const task = this.tasks.get(taskId);
     if (!task) {
       throw new Error("Task not found");
@@ -180,7 +180,7 @@ export class MemStorage implements IStorage {
 
     // Create or update user task
     const userTask: UserTask = {
-      id: this.currentUserTaskId++,
+      id: (this.currentUserTaskId++).toString(),
       userId,
       taskId,
       completed: true,
@@ -199,16 +199,16 @@ export class MemStorage implements IStorage {
   async createNFTReservation(reservation: InsertNFTReservation): Promise<NFTReservation> {
     const id = this.currentNFTReservationId++;
     const nftReservation: NFTReservation = {
-      id,
+      id: id.toString(),
       ...reservation,
       verified: false, // Will be verified manually or by admin
       createdAt: new Date(),
     };
-    this.nftReservations.set(id, nftReservation);
+    this.nftReservations.set(nftReservation.id, nftReservation);
     return nftReservation;
   }
 
-  async getNFTReservations(userId: number): Promise<NFTReservation[]> {
+  async getNFTReservations(userId: string): Promise<NFTReservation[]> {
     return Array.from(this.nftReservations.values()).filter(r => r.userId === userId);
   }
 }
