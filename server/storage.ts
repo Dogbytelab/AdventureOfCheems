@@ -18,17 +18,19 @@ type CreateUserData = {
 
 export interface IStorage {
   getUserByUid(uid: string): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
   createUser(user: CreateUserData): Promise<User>;
   generateReferralCode(): Promise<string>;
   incrementInviteCount(referralCode: string): Promise<void>;
   
   getAllTasks(): Promise<Task[]>;
-  getUserTasks(userId: string): Promise<UserTask[]>;
-  getUserTask(userId: string, taskId: string): Promise<UserTask | undefined>;
-  completeTask(userId: string, taskId: string): Promise<UserTask>;
+  getUserTasks(userUid: string): Promise<UserTask[]>;
+  getUserTask(userUid: string, taskId: string): Promise<UserTask | undefined>;
+  completeTask(userUid: string, taskId: string): Promise<UserTask>;
+  claimTaskReward(userUid: string, taskId: string): Promise<UserTask>;
   
   createNFTReservation(reservation: InsertNFTReservation): Promise<NFTReservation>;
-  getNFTReservations(userId: string): Promise<NFTReservation[]>;
+  getNFTReservations(userUid: string): Promise<NFTReservation[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -103,6 +105,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(user => user.uid === uid);
   }
 
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+
   async createUser(userData: CreateUserData): Promise<User> {
     const id = this.currentUserId++;
     const user: User = {
@@ -152,29 +158,33 @@ export class MemStorage implements IStorage {
     return Array.from(this.tasks.values()).filter(task => task.isActive);
   }
 
-  async getUserTasks(userId: string): Promise<UserTask[]> {
-    return Array.from(this.userTasks.values()).filter(ut => ut.userId === userId);
+  async getUserTasks(userUid: string): Promise<UserTask[]> {
+    const user = await this.getUserByUid(userUid);
+    if (!user) return [];
+    return Array.from(this.userTasks.values()).filter(ut => ut.userId === user.id);
   }
 
-  async getUserTask(userId: string, taskId: string): Promise<UserTask | undefined> {
+  async getUserTask(userUid: string, taskId: string): Promise<UserTask | undefined> {
+    const user = await this.getUserByUid(userUid);
+    if (!user) return undefined;
     return Array.from(this.userTasks.values()).find(
-      ut => ut.userId === userId && ut.taskId === taskId
+      ut => ut.userId === user.id && ut.taskId === taskId
     );
   }
 
-  async completeTask(userId: string, taskId: string): Promise<UserTask> {
+  async completeTask(userUid: string, taskId: string): Promise<UserTask> {
     const task = this.tasks.get(taskId);
     if (!task) {
       throw new Error("Task not found");
     }
 
-    const user = this.users.get(userId);
+    const user = await this.getUserByUid(userUid);
     if (!user) {
       throw new Error("User not found");
     }
 
     // Check if task is already completed
-    const existingUserTask = await this.getUserTask(userId, taskId);
+    const existingUserTask = await this.getUserTask(userUid, taskId);
     if (existingUserTask && existingUserTask.completed) {
       return existingUserTask;
     }
@@ -182,7 +192,7 @@ export class MemStorage implements IStorage {
     // Create user task
     const userTask: UserTask = {
       id: (this.currentUserTaskId++).toString(),
-      userId,
+      userId: user.id,
       taskId,
       completed: true,
       completedAt: new Date(),
@@ -192,9 +202,14 @@ export class MemStorage implements IStorage {
 
     // Award points to user
     user.aocPoints += task.points;
-    this.users.set(userId, user);
+    this.users.set(user.id, user);
 
     return userTask;
+  }
+
+  async claimTaskReward(userUid: string, taskId: string): Promise<UserTask> {
+    // For this implementation, claiming is the same as completing
+    return this.completeTask(userUid, taskId);
   }
 
   async createNFTReservation(reservation: InsertNFTReservation): Promise<NFTReservation> {
@@ -209,8 +224,10 @@ export class MemStorage implements IStorage {
     return nftReservation;
   }
 
-  async getNFTReservations(userId: string): Promise<NFTReservation[]> {
-    return Array.from(this.nftReservations.values()).filter(r => r.userId === userId);
+  async getNFTReservations(userUid: string): Promise<NFTReservation[]> {
+    const user = await this.getUserByUid(userUid);
+    if (!user) return [];
+    return Array.from(this.nftReservations.values()).filter(r => r.userId === user.id);
   }
 }
 

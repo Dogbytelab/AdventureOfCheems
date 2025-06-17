@@ -9,12 +9,13 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useNFTReservations } from "@/hooks/useFirestore";
 import type { User } from "@shared/schema";
+import React from "react";
 
 export default function DashboardTab() {
   const { firebaseUser } = useAuth();
   const { toast } = useToast();
 
-  const { data: user } = useQuery<User>({
+  const { data: user, refetch: refetchUser } = useQuery<User>({
     queryKey: ["/api/users", firebaseUser?.uid],
     enabled: !!firebaseUser?.uid,
     queryFn: async () => {
@@ -22,6 +23,17 @@ export default function DashboardTab() {
       return response.json();
     }
   });
+
+  // Refetch user data periodically to ensure updates are shown
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      if (firebaseUser?.uid) {
+        refetchUser();
+      }
+    }, 5000); // Refetch every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [firebaseUser?.uid, refetchUser]);
 
   const { data: nftReservations = [] } = useQuery({
     queryKey: ["/api/nft-reservations", user?.uid],
@@ -51,7 +63,7 @@ export default function DashboardTab() {
   };
 
   const inviteProgress = user ? Math.min((user.inviteCount / 100) * 100, 100) : 0;
-  
+
   const rewardTiers = [
     { invites: 5, multiplier: "1.5x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 5 },
     { invites: 10, multiplier: "2x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 10 },
@@ -77,7 +89,7 @@ export default function DashboardTab() {
       >
         DASHBOARD
       </motion.h2>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* AOC Points Card */}
         <motion.div
@@ -95,7 +107,7 @@ export default function DashboardTab() {
             </CardContent>
           </Card>
         </motion.div>
-        
+
         {/* Referral Card */}
         <motion.div
           initial={{ opacity: 0, x: 0 }}
@@ -160,7 +172,7 @@ export default function DashboardTab() {
             </CardContent>
           </Card>
         </motion.div>
-        
+
         {/* Invites Progress */}
         <motion.div
           className="lg:col-span-3"

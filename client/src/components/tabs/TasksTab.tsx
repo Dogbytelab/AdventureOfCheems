@@ -52,7 +52,7 @@ export default function TasksTab() {
     if (!user) return;
 
     try {
-      const response = await apiRequest("POST", `/api/user-tasks/${user.uid}/${taskId}/complete`);
+      const response = await apiRequest("POST", `/api/user-tasks/${user.uid}/${taskId}/claim`);
       if (response.ok) {
         toast({
           title: "Points Claimed!",
