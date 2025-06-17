@@ -5,8 +5,8 @@ import { storage } from "./storage";
 import { insertUserSchema, insertUserTaskSchema, insertNFTReservationSchema } from "@shared/schema";
 import { z } from "zod";
 
-// Use memory storage as fallback when Firebase has permission issues
-const dataStorage = storage;
+// Use Firebase Realtime Database for persistent storage
+const dataStorage = firebaseStorage;
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get user by Firebase UID
