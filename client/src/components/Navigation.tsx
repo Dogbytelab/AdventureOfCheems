@@ -65,19 +65,20 @@ export default function Navigation({ activeTab, onTabChange }: NavigationProps) 
       {/* Tab Navigation */}
       <nav className="glass-effect border-b border-gray-700/50">
         <div className="container mx-auto px-4">
-          <div className="flex space-x-1 overflow-x-auto">
+          <div className="flex justify-center space-x-2 md:space-x-4">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`px-6 py-3 font-retro text-sm whitespace-nowrap transition-all duration-300 border-b-2 ${
+                className={`px-3 md:px-6 py-3 font-retro text-xs md:text-sm transition-all duration-300 border-b-2 ${
                   activeTab === tab.id
                     ? "border-accent text-accent"
                     : "border-transparent text-text-secondary hover:text-accent"
                 }`}
               >
-                <span className="mr-2">{tab.icon}</span>
-                {tab.label}
+                <span className="mr-1 md:mr-2">{tab.icon}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
               </button>
             ))}
           </div>

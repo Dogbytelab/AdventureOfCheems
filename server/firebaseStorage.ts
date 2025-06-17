@@ -219,14 +219,20 @@ export class FirebaseStorage implements IFirebaseStorage {
     }
   }
 
-  async completeTask(userId: string, taskId: string): Promise<UserTask> {
+  async completeTask(userUid: string, taskId: string): Promise<UserTask> {
     try {
+      // Get user by UID to get the user ID
+      const user = await this.getUserByUid(userUid);
+      if (!user) {
+        throw new Error('User not found');
+      }
+      
       const userTasksRef = ref(rtdb, 'userTasks');
       const newUserTaskRef = push(userTasksRef);
       
       const userTask: UserTask = {
         id: newUserTaskRef.key!,
-        userId,
+        userId: user.id,
         taskId,
         completed: true,
         completedAt: new Date(),
@@ -235,7 +241,7 @@ export class FirebaseStorage implements IFirebaseStorage {
       await set(newUserTaskRef, userTask);
       
       // Award points to user
-      await this.updateUserPoints(userId, 1000);
+      await this.updateUserPoints(userUid, 1000);
       
       return userTask;
     } catch (error) {
@@ -288,10 +294,10 @@ export class FirebaseStorage implements IFirebaseStorage {
     }
   }
 
-  async updateUserPoints(userId: string, pointsToAdd: number): Promise<void> {
+  async updateUserPoints(userUid: string, pointsToAdd: number): Promise<void> {
     try {
       const usersRef = ref(rtdb, 'users');
-      const userQuery = query(usersRef, orderByChild('uid'), equalTo(userId));
+      const userQuery = query(usersRef, orderByChild('uid'), equalTo(userUid));
       const snapshot = await get(userQuery);
       
       if (snapshot.exists()) {

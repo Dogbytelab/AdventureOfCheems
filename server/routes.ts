@@ -60,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all tasks
   app.get("/api/tasks", async (req, res) => {
     try {
-      const tasks = await storage.getAllTasks();
+      const tasks = await firebaseStorage.getAllTasks();
       res.json(tasks);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -70,8 +70,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user tasks
   app.get("/api/user-tasks/:userId", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
-      const userTasks = await storage.getUserTasks(userId);
+      const userId = req.params.userId;
+      const userTasks = await firebaseStorage.getUserTasks(userId);
       res.json(userTasks);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -84,12 +84,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertUserTaskSchema.parse(req.body);
       
       // Check if task is already completed
-      const existingUserTask = await storage.getUserTask(validatedData.userId, validatedData.taskId);
+      const existingUserTask = await firebaseStorage.getUserTask(validatedData.userId, validatedData.taskId);
       if (existingUserTask && existingUserTask.completed) {
         return res.status(409).json({ message: "Task already completed" });
       }
       
-      const userTask = await storage.completeTask(validatedData.userId, validatedData.taskId);
+      const userTask = await firebaseStorage.completeTask(validatedData.userId, validatedData.taskId);
       res.status(201).json(userTask);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -103,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/nft-reservations", async (req, res) => {
     try {
       const validatedData = insertNFTReservationSchema.parse(req.body);
-      const reservation = await storage.createNFTReservation(validatedData);
+      const reservation = await firebaseStorage.createNFTReservation(validatedData);
       res.status(201).json(reservation);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -116,8 +116,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get NFT reservations for user
   app.get("/api/nft-reservations/:userId", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
-      const reservations = await storage.getNFTReservations(userId);
+      const userId = req.params.userId;
+      const reservations = await firebaseStorage.getNFTReservations(userId);
       res.json(reservations);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });

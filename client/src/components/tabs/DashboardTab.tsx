@@ -36,15 +36,15 @@ export default function DashboardTab() {
     }
   };
 
-  const inviteProgress = user ? Math.min((user.inviteCount / 25) * 100, 100) : 0;
+  const inviteProgress = user ? Math.min((user.inviteCount / 100) * 100, 100) : 0;
   
   const rewardTiers = [
-    { invites: 1, completed: (user?.inviteCount || 0) >= 1 },
-    { invites: 5, completed: (user?.inviteCount || 0) >= 5 },
-    { invites: 10, completed: (user?.inviteCount || 0) >= 10 },
-    { invites: 25, completed: (user?.inviteCount || 0) >= 25 },
-    { invites: 50, completed: (user?.inviteCount || 0) >= 50 },
-    { invites: 100, completed: (user?.inviteCount || 0) >= 100 },
+    { invites: 5, multiplier: "1.5x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 5 },
+    { invites: 10, multiplier: "2x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 10 },
+    { invites: 25, multiplier: "3x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 25 },
+    { invites: 45, multiplier: "4x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 45 },
+    { invites: 69, multiplier: "5x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 69 },
+    { invites: 100, multiplier: "10x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 100 },
   ];
 
   return (
@@ -89,8 +89,9 @@ export default function DashboardTab() {
                 <Input
                   type="text"
                   readOnly
-                  value={user?.referralCode || "Loading..."}
+                  value={user?.referralCode || "Generating..."}
                   className="flex-1 bg-secondary/50 border-gray-600 text-white font-mono"
+                  disabled={!user?.referralCode}
                 />
                 <Button
                   onClick={handleCopyReferralCode}
@@ -121,41 +122,36 @@ export default function DashboardTab() {
                 <span>
                   Invites = <span className="text-accent font-bold">{user?.inviteCount || 0}</span>
                 </span>
-                <span className="text-text-secondary">Next bonus at 25</span>
+                <span className="text-text-secondary">Each invite = +100 AOC Points</span>
               </div>
               <Progress value={inviteProgress} className="mb-4" />
-              <div className="grid grid-cols-6 gap-2">
-                {rewardTiers.map((tier, index) => (
-                  <div
-                    key={tier.invites}
-                    className={`text-center p-2 rounded-lg border ${
-                      tier.completed
-                        ? tier.invites <= 5
-                          ? "bg-success/20 border-success/50"
-                          : tier.invites === 10
-                          ? "bg-warning/20 border-warning/50"
-                          : "bg-accent/20 border-accent/50"
-                        : "bg-gray-600/20 border-gray-600/50"
-                    }`}
-                  >
+              <div className="space-y-3">
+                <div className="text-sm text-text-secondary mb-2">Reward Multipliers:</div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {rewardTiers.map((tier) => (
                     <div
-                      className={`text-xs font-bold ${
+                      key={tier.invites}
+                      className={`p-3 rounded-lg border text-center ${
                         tier.completed
-                          ? tier.invites <= 5
-                            ? "text-success"
-                            : tier.invites === 10
-                            ? "text-warning"
-                            : "text-accent"
-                          : "text-gray-400"
+                          ? "bg-accent/20 border-accent/50"
+                          : "bg-gray-600/20 border-gray-600/50"
                       }`}
                     >
-                      {tier.invites}
+                      <div className={`text-sm font-bold ${tier.completed ? "text-accent" : "text-gray-400"}`}>
+                        {tier.invites} invites
+                      </div>
+                      <div className={`text-xs ${tier.completed ? "text-accent" : "text-gray-500"}`}>
+                        {tier.multiplier}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {tier.points}
+                      </div>
+                      <div className="text-xs mt-1">
+                        {tier.completed ? "✅" : "⏳"}
+                      </div>
                     </div>
-                    <div className="text-xs">
-                      {tier.completed ? "✓" : "-"}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
