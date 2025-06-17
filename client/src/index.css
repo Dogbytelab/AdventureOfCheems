@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Press+Start+2P&display=swap');
+
+:root {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(347, 77%, 49%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --accent-orange: hsl(28, 89%, 52%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+  --success: hsl(142, 76%, 36%);
+  --warning: hsl(48, 96%, 53%);
+  --error: hsl(0, 84%, 60%);
+  --text-primary: hsl(0, 0%, 98%);
+  --text-secondary: hsl(240, 5%, 64.9%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Orbitron', 'Courier New', monospace;
+  }
+}
+
+@layer utilities {
+  .font-pixel {
+    font-family: 'Orbitron', 'Courier New', monospace;
+  }
+  
+  .font-retro {
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+  }
+
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .retro-button {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .retro-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+  }
+
+  .retro-button:hover::before {
+    left: 100%;
+  }
+
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .bg-stars {
+    background-image: radial-gradient(2px 2px at 20px 30px, rgba(255, 255, 255, 0.3), transparent),
+                      radial-gradient(2px 2px at 40px 70px, rgba(255, 255, 255, 0.5), transparent),
+                      radial-gradient(1px 1px at 90px 40px, rgba(255, 255, 255, 0.4), transparent),
+                      radial-gradient(1px 1px at 130px 80px, rgba(255, 255, 255, 0.6), transparent),
+                      radial-gradient(2px 2px at 160px 30px, rgba(255, 255, 255, 0.3), transparent);
+    background-repeat: repeat;
+    background-size: 200px 100px;
+    animation: twinkle 10s infinite;
+  }
+
+  .text-accent {
+    color: hsl(347, 77%, 49%);
+  }
+
+  .text-accent-orange {
+    color: hsl(28, 89%, 52%);
+  }
+
+  .text-success {
+    color: hsl(142, 76%, 36%);
+  }
+
+  .text-warning {
+    color: hsl(48, 96%, 53%);
+  }
+
+  .text-error {
+    color: hsl(0, 84%, 60%);
+  }
+
+  .text-text-primary {
+    color: hsl(0, 0%, 98%);
+  }
+
+  .text-text-secondary {
+    color: hsl(240, 5%, 64.9%);
+  }
+
+  .bg-accent {
+    background-color: hsl(347, 77%, 49%);
+  }
+
+  .bg-accent-orange {
+    background-color: hsl(28, 89%, 52%);
+  }
+
+  .bg-success {
+    background-color: hsl(142, 76%, 36%);
+  }
+
+  .bg-warning {
+    background-color: hsl(48, 96%, 53%);
+  }
+
+  .bg-error {
+    background-color: hsl(0, 84%, 60%);
+  }
+
+  .border-accent {
+    border-color: hsl(347, 77%, 49%);
+  }
+
+  .border-accent\/30 {
+    border-color: hsl(347, 77%, 49%, 0.3);
+  }
+
+  .border-accent\/50 {
+    border-color: hsl(347, 77%, 49%, 0.5);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 20px hsla(347, 77%, 49%, 0.5); 
+  }
+  50% { 
+    box-shadow: 0 0 40px hsla(347, 77%, 49%, 0.8); 
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
