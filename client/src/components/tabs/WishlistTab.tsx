@@ -13,7 +13,7 @@ interface WishlistTabProps {
 export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
   const { firebaseUser } = useAuth();
   const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStates, setProcessingStates] = useState<Record<string, boolean>>({});
 
   const RECIPIENT_WALLET = "BmzAXDfy6rvSgj4BiZ7R8eEr83S2VpCMKVYwZ3EdgTnp";
 
@@ -27,7 +27,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       return;
     }
 
-    setIsProcessing(true);
+    setProcessingStates(prev => ({ ...prev, [nftType]: true }));
 
     try {
       // Check if Phantom wallet is available
@@ -90,7 +90,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
         variant: "destructive",
       });
     } finally {
-      setIsProcessing(false);
+      setProcessingStates(prev => ({ ...prev, [nftType]: false }));
     }
   };
 
@@ -171,12 +171,12 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
 
                 <Button
                   onClick={() => handlePhantomPayment(nft.type, nft.price)}
-                  disabled={isProcessing}
+                  disabled={processingStates[nft.type] || false}
                   className={`w-full ${nft.buttonColor} text-white font-bold py-3 px-6 retro-button ${
                     nft.rare ? "pulse-glow" : ""
                   }`}
                 >
-                  {isProcessing ? "Processing..." : "Reserve with Phantom"}
+                  {processingStates[nft.type] ? "Processing..." : "Reserve with Phantom"}
                 </Button>
               </CardContent>
             </Card>
