@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [
     react(),
     nodePolyfills({
-      include: ["buffer", "process"],
+      include: ["buffer", "process", "crypto", "stream", "util"],
       globals: {
         Buffer: true,
         global: true,
@@ -27,14 +27,15 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+      "@": path.resolve(import.meta.dirname, "./client/src"),
+      "@shared": path.resolve(import.meta.dirname, "./shared"),
+      "@assets": path.resolve(import.meta.dirname, "./attached_assets"),
     },
   },
   define: {
     global: "globalThis",
   },
+  root: "./client",
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,

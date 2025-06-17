@@ -1,4 +1,10 @@
 import { Connection, PublicKey, clusterApiUrl, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { Buffer } from 'buffer';
+
+// Ensure Buffer is available globally
+if (typeof window !== 'undefined') {
+  window.Buffer = Buffer;
+}
 
 export interface SolanaTransactionVerification {
   valid: boolean;
@@ -32,6 +38,156 @@ const TOLERANCE_PERCENT = 0.05; // 5% tolerance for price fluctuation
 const MAX_TRANSACTION_AGE_MINUTES = 15;
 
 // Use mainnet-beta for production
+const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+
+export interface WalletType {
+  name: string;
+  adapter: any;
+  readyState: string;
+}
+
+export function detectAvailableWallets(): WalletType[] {
+  const wallets: WalletType[] = [];
+  
+  if (typeof window !== 'undefined') {
+    // Check for Phantom
+    if (window.solana && window.solana.isPhantom) {
+      wallets.push({
+        name: 'Phantom',
+        adapter: window.solana,
+        readyState: 'Installed'
+      });
+    }
+    
+    // Check for Solflare
+    if (window.solflare && window.solflare.isSolflare) {
+      wallets.push({
+        name: 'Solflare',
+        adapter: window.solflare,
+        readyState: 'Installed'
+      });
+    }
+    
+    // Check for Backpack
+    if (window.backpack && window.backpack.isBackpack) {
+      wallets.push({
+        name: 'Backpack',
+        adapter: window.backpack,
+        readyState: 'Installed'
+      });
+    }
+  }
+  
+  return wallets;
+}
+
+export async function connectSolanaWallet() {
+  const wallets = detectAvailableWallets();
+  
+  if (wallets.length === 0) {
+    throw new Error('No Solana wallet found. Please install Phantom, Solflare, or Backpack.');
+  }
+  
+  const wallet = wallets[0]; // Use the first available wallet
+  
+  try {
+    await wallet.adapter.connect();
+    const publicKey = wallet.adapter.publicKey?.toString();
+    
+    if (!publicKey) {
+      throw new Error('Failed to get wallet public key');
+    }
+    
+    return {
+      connected: true,
+      publicKey,
+      walletName: wallet.name
+    };
+  } catch (error: any) {
+    console.error(`Failed to connect to ${wallet.name} wallet:`, error);
+    throw new Error(`Failed to connect to ${wallet.name} wallet: ${error.message}`);
+  }
+}
+
+export async function connectPhantomWallet() {
+  if (typeof window === 'undefined' || !window.solana) {
+    throw new Error('Phantom wallet not found. Please install Phantom wallet extension.');
+  }
+  
+  try {
+    await window.solana.connect();
+    const publicKey = window.solana.publicKey?.toString();
+    
+    if (!publicKey) {
+      throw new Error('Failed to get Phantom wallet public key');
+    }
+    
+    return {
+      connected: true,
+      publicKey,
+      walletName: 'Phantom'
+    };
+  } catch (error: any) {
+    console.error('Failed to connect to Phantom wallet:', error);
+    throw new Error(`Failed to connect to Phantom wallet: ${error.message}`);
+  }
+}
+
+export async function getCurrentSOLPrice(): Promise<number> {
+  try {
+    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+    const data = await response.json();
+    return data.solana.usd;
+  } catch (error) {
+    console.error('Failed to fetch SOL price:', error);
+    // Fallback price if API fails
+    return 100; // Default fallback price
+  }
+}
+
+export function calculateSOLAmount(usdAmount: number, solPrice: number): number {
+  return usdAmount / solPrice;
+}
+
+export async function sendSOLTransaction(recipient: string, amount: number): Promise<string> {
+  const wallets = detectAvailableWallets();
+  
+  if (wallets.length === 0) {
+    throw new Error('No wallet connected');
+  }
+  
+  const wallet = wallets[0].adapter;
+  
+  if (!wallet.publicKey) {
+    throw new Error('Wallet not connected');
+  }
+  
+  try {
+    const { Transaction, SystemProgram } = await import('@solana/web3.js');
+    
+    const transaction = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: wallet.publicKey,
+        toPubkey: new PublicKey(recipient),
+        lamports: Math.floor(amount * LAMPORTS_PER_SOL),
+      })
+    );
+    
+    const { blockhash } = await connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = wallet.publicKey;
+    
+    const signed = await wallet.signTransaction(transaction);
+    const signature = await connection.sendRawTransaction(signed.serialize());
+    
+    await connection.confirmTransaction(signature);
+    
+    return signature;
+  } catch (error: any) {
+    console.error('Transaction failed:', error);
+    throw new Error(`Transaction failed: ${error.message}`);
+  }
+}
 const connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
 
 // Supported wallet types
