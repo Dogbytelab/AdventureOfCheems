@@ -274,11 +274,29 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
           const [uid, userData] = userEntry;
           const currentInviteCount = userData.referral?.inviteCount || 0;
           const currentPoints = userData.aocPoints?.total || 0;
+          const newInviteCount = currentInviteCount + 1;
 
-          await update(ref(rtdb, `users/${uid}`), {
-            'referral/inviteCount': currentInviteCount + 1,
+          // Auto-reward Normie wishlist at specific invite milestones
+          const autoRewardMilestones = [25, 40, 50, 80, 99];
+          const shouldRewardNormie = autoRewardMilestones.includes(newInviteCount);
+
+          const updateData: any = {
+            'referral/inviteCount': newInviteCount,
             'aocPoints/total': currentPoints + 100 // +100 AOC points per invite
-          });
+          };
+
+          // If user reaches milestone and doesn't already have a wishlist, give free Normie
+          if (shouldRewardNormie && !userData.wishlist?.type) {
+            updateData['wishlist/type'] = 'normie';
+            updateData['wishlist/amount'] = 5;
+            updateData['wishlist/txHash'] = `AUTO_REWARD_${newInviteCount}_INVITES`;
+            updateData['wishlist/confirmed'] = true;
+            updateData['wishlist/timestamp'] = serverTimestamp();
+            
+            console.log(`Auto-rewarded Normie wishlist to user ${uid} for reaching ${newInviteCount} invites`);
+          }
+
+          await update(ref(rtdb, `users/${uid}`), updateData);
         }
       }
     } catch (error) {

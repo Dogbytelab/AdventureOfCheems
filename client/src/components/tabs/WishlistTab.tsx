@@ -28,11 +28,11 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
     }
 
     setIsProcessing(true);
-    
+
     try {
       // Check if Phantom wallet is available
       const { solana } = window as any;
-      
+
       if (!solana?.isPhantom) {
         toast({
           title: "Phantom Wallet Required",
@@ -45,7 +45,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
 
       // Connect to Phantom wallet
       await solana.connect();
-      
+
       // Get current SOL price
       const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
       const priceData = await response.json();
@@ -97,31 +97,35 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
   const nfts = [
     {
       type: "normie",
-      emoji: "💠",
       name: "NORMIE",
+      emoji: "🤡",
       price: 5,
-      supply: 10000,
+      supply: 25000,
       color: "text-blue-400",
-      buttonColor: "bg-blue-500 hover:bg-blue-600",
+      buttonColor: "bg-blue-600 hover:bg-blue-700",
+      popular: false,
+      rare: false,
     },
     {
       type: "sigma",
-      emoji: "💎",
       name: "SIGMA",
+      emoji: "🗿",
       price: 25,
-      supply: 1000,
+      supply: 5000,
       color: "text-purple-400",
-      buttonColor: "bg-purple-500 hover:bg-purple-600",
+      buttonColor: "bg-purple-600 hover:bg-purple-700",
       popular: true,
+      rare: false,
     },
     {
       type: "chad",
-      emoji: "🔥",
       name: "CHAD",
+      emoji: "💪",
       price: 269,
-      supply: 100,
-      color: "text-accent",
-      buttonColor: "bg-accent hover:bg-accent/80",
+      supply: 669,
+      color: "text-gold",
+      buttonColor: "bg-gold hover:bg-gold/80",
+      popular: false,
       rare: true,
     },
   ];
@@ -136,7 +140,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       >
         WISHLIST NFT RESERVATION
       </motion.h2>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {nfts.map((nft, index) => (
           <motion.div
@@ -152,19 +156,19 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                 <h3 className={`text-2xl font-retro ${nft.color} mb-2`}>{nft.name}</h3>
                 <div className="text-3xl font-bold text-success mb-2">${nft.price}</div>
                 <div className="text-text-secondary mb-4">Supply: {nft.supply.toLocaleString()}</div>
-                
+
                 {nft.popular && (
                   <div className="bg-warning text-black text-xs font-bold py-1 px-2 rounded-full mb-4">
                     POPULAR
                   </div>
                 )}
-                
+
                 {nft.rare && (
                   <div className="bg-accent text-white text-xs font-bold py-1 px-2 rounded-full mb-4">
                     RARE
                   </div>
                 )}
-                
+
                 <Button
                   onClick={() => handlePhantomPayment(nft.type, nft.price)}
                   disabled={isProcessing}
@@ -179,7 +183,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
           </motion.div>
         ))}
       </div>
-      
+
       <motion.div
         className="mt-12 text-center"
         initial={{ opacity: 0, y: 20 }}

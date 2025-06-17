@@ -65,12 +65,14 @@ export default function DashboardTab() {
   const inviteProgress = user ? Math.min((user.inviteCount / 100) * 100, 100) : 0;
 
   const rewardTiers = [
-    { invites: 5, multiplier: "1.5x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 5 },
-    { invites: 10, multiplier: "2x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 10 },
-    { invites: 25, multiplier: "3x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 25 },
-    { invites: 45, multiplier: "4x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 45 },
-    { invites: 69, multiplier: "5x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 69 },
-    { invites: 100, multiplier: "10x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 100 },
+    { invites: 5, multiplier: "1.5x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 5, special: false },
+    { invites: 10, multiplier: "2x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 10, special: false },
+    { invites: 25, multiplier: "3x", points: "+100 AOC + Free Normie", completed: (user?.inviteCount || 0) >= 25, special: true },
+    { invites: 40, multiplier: "4x", points: "+100 AOC + Free Normie", completed: (user?.inviteCount || 0) >= 40, special: true },
+    { invites: 50, multiplier: "5x", points: "+100 AOC + Free Normie", completed: (user?.inviteCount || 0) >= 50, special: true },
+    { invites: 80, multiplier: "8x", points: "+100 AOC + Free Normie", completed: (user?.inviteCount || 0) >= 80, special: true },
+    { invites: 99, multiplier: "10x", points: "+100 AOC + Free Normie", completed: (user?.inviteCount || 0) >= 99, special: true },
+    { invites: 100, multiplier: "10x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 100, special: false },
   ];
 
   // Calculate NFT reservations count by type
@@ -198,21 +200,35 @@ export default function DashboardTab() {
                       key={tier.invites}
                       className={`p-3 rounded-lg border text-center ${
                         tier.completed
-                          ? "bg-accent/20 border-accent/50"
+                          ? tier.special
+                            ? "bg-gold/20 border-gold/50"
+                            : "bg-accent/20 border-accent/50"
                           : "bg-gray-600/20 border-gray-600/50"
                       }`}
                     >
-                      <div className={`text-sm font-bold ${tier.completed ? "text-accent" : "text-gray-400"}`}>
+                      <div className={`text-sm font-bold ${
+                        tier.completed 
+                          ? tier.special 
+                            ? "text-gold" 
+                            : "text-accent" 
+                          : "text-gray-400"
+                      }`}>
                         {tier.invites} invites
                       </div>
-                      <div className={`text-xs ${tier.completed ? "text-accent" : "text-gray-500"}`}>
+                      <div className={`text-xs ${
+                        tier.completed 
+                          ? tier.special 
+                            ? "text-gold" 
+                            : "text-accent" 
+                          : "text-gray-500"
+                      }`}>
                         {tier.multiplier}
                       </div>
                       <div className="text-xs text-gray-400">
                         {tier.points}
                       </div>
                       <div className="text-xs mt-1">
-                        {tier.completed ? "✅" : "⏳"}
+                        {tier.completed ? (tier.special ? "🎁" : "✅") : "⏳"}
                       </div>
                     </div>
                   ))}
