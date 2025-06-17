@@ -30,27 +30,27 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
   const nftTypes = [
     {
       type: "normie",
-      name: "Normie",
-      price: NFT_PRICES.NORMIE,
-      limit: NFT_LIMITS.NORMIE,
+      name: "🤡 NORMIE",
+      price: 5,
+      limit: 25,
       description: "Entry-level NFT for new holders",
       buttonColor: "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700",
       rare: false
     },
     {
       type: "sigma",
-      name: "Sigma",
-      price: NFT_PRICES.SIGMA,
-      limit: NFT_LIMITS.SIGMA,
+      name: "🗿 SIGMA",
+      price: 25,
+      limit: 5,
       description: "Mid-tier NFT with exclusive benefits",
       buttonColor: "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
       rare: true
     },
     {
       type: "chad",
-      name: "Chad",
-      price: NFT_PRICES.CHAD,
-      limit: NFT_LIMITS.CHAD,
+      name: "💪 CHAD",
+      price: 269,
+      limit: 1,
       description: "Ultra-rare NFT for elite holders",
       buttonColor: "bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700",
       rare: true
@@ -62,7 +62,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       const connection = await connectPhantomWallet();
       setWalletConnected(connection.connected);
       setWalletAddress(connection.publicKey);
-      
+
       toast({
         title: "Wallet Connected",
         description: `Connected to ${connection.publicKey.slice(0, 8)}...${connection.publicKey.slice(-8)}`,
@@ -148,9 +148,9 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
 
     } catch (error: any) {
       console.error('Payment failed:', error);
-      
+
       let errorMessage = "Failed to process payment. Please try again.";
-      
+
       if (error.message?.includes("User rejected")) {
         errorMessage = "Transaction was cancelled by user.";
       } else if (error.message?.includes("already used")) {
@@ -183,7 +183,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
         <p className="text-text-secondary mb-6">
           Secure your spot in the DogByte ecosystem with exclusive NFT reservations
         </p>
-        
+
         {!walletConnected ? (
           <Button
             onClick={handleConnectWallet}
@@ -221,7 +221,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                     Limited to {nft.limit} NFTs
                   </div>
                 </div>
-                
+
                 <div className="space-y-3">
                   <div className="bg-secondary/50 rounded-lg p-3">
                     <div className="text-xs text-text-secondary mb-1">Benefits Include:</div>
@@ -231,7 +231,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                       {nft.type === "chad" && "• VIP game access\n• Maximum rewards\n• Direct dev communication\n• Special events"}
                     </div>
                   </div>
-                  
+
                   <Button
                     onClick={() => handlePhantomPayment(nft.type, nft.price)}
                     disabled={processingStates[nft.type] || !walletConnected}
@@ -285,7 +285,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
             </div>
           </div>
         </div>
-        
+
         <p className="text-text-secondary mt-4 text-sm">
           <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
