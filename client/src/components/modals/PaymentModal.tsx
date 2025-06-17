@@ -171,9 +171,29 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
                 </div>
                 
                 <div className="space-y-4">
+                  {/* Payment Amount */}
+                  <div>
+                    <label className="block text-sm font-bold mb-2">Payment Amount:</label>
+                    <div className="bg-secondary/50 border border-accent/30 rounded-lg p-3">
+                      <div className="text-lg font-bold text-accent">
+                        ${price} USD
+                        {solAmount && (
+                          <span className="text-sm text-text-secondary ml-2">
+                            ≈ {solAmount.toFixed(4)} SOL
+                          </span>
+                        )}
+                      </div>
+                      {solPrice && (
+                        <div className="text-xs text-text-secondary mt-1">
+                          SOL Price: ${solPrice.toFixed(2)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Payment Wallet */}
                   <div>
-                    <label className="block text-sm font-bold mb-2">Payment Wallet:</label>
+                    <label className="block text-sm font-bold mb-2">Send Payment To:</label>
                     <div className="bg-secondary/50 border border-gray-600 rounded-lg p-3 font-mono text-sm break-all">
                       BmzAXDfy6rvSgj4BiZ7R8eEr83S2VpCMKVYwZ3EdgTnp
                     </div>
@@ -185,7 +205,7 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
                       <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                       </svg>
-                      Send the exact amount and paste your Solana Transaction Hash below
+                      Send {solAmount ? `${solAmount.toFixed(4)} SOL` : `$${price} USD worth of SOL`} to the wallet above, then paste your transaction hash below
                     </p>
                   </div>
                   
