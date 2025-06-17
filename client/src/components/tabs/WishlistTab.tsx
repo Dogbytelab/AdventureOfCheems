@@ -25,9 +25,9 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
   const [walletConnected, setWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [nftSupply, setNftSupply] = useState<Record<string, { sold: number; remaining: number }>>({
-    normie: { sold: 0, remaining: 25 },
-    sigma: { sold: 0, remaining: 5 },
-    chad: { sold: 0, remaining: 1 }
+    normie: { sold: 0, remaining: 25000 },
+    sigma: { sold: 0, remaining: 5000 },
+    chad: { sold: 0, remaining: 669 }
   });
 
   const RECIPIENT_WALLET = "BmzAXDfy6rvSgj4BiZ7R8eEr83S2VpCMKVYwZ3EdgTnp";
@@ -55,6 +55,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       name: "🤡 NORMIE",
       price: 5,
       limit: 25,
+      totalSupply: 25000,
       description: "Entry-level NFT for new holders",
       buttonColor: "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700",
       rare: false
@@ -64,6 +65,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       name: "🗿 SIGMA",
       price: 25,
       limit: 5,
+      totalSupply: 5000,
       description: "Mid-tier NFT with exclusive benefits",
       buttonColor: "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
       rare: true
@@ -73,6 +75,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       name: "💪 CHAD",
       price: 269,
       limit: 1,
+      totalSupply: 669,
       description: "Ultra-rare NFT for elite holders",
       buttonColor: "bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700",
       rare: true
@@ -249,12 +252,12 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                   <p className="text-text-secondary text-sm mb-3">{nft.description}</p>
                   <div className="text-3xl font-bold text-success mb-2">${nft.price}</div>
                   <div className="text-sm text-text-secondary mb-1">
-                    Supply: {nft.limit} Total
+                    Supply: {nft.totalSupply.toLocaleString()} Total
                   </div>
                   <div className="text-sm font-medium">
-                    <span className="text-red-400">Sold: {nftSupply[nft.type]?.sold || 0}</span>
+                    <span className="text-blue-400">Max per user: {nft.limit}</span>
                     <span className="mx-2">•</span>
-                    <span className="text-green-400">Remaining: {nftSupply[nft.type]?.remaining || nft.limit}</span>
+                    <span className="text-green-400">Available: {(nftSupply[nft.type]?.remaining || nft.totalSupply).toLocaleString()}</span>
                   </div>
                 </div>
 
@@ -273,7 +276,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                     disabled={
                       processingStates[nft.type] || 
                       !walletConnected || 
-                      (nftSupply[nft.type]?.remaining || nft.limit) <= 0
+                      (nftSupply[nft.type]?.remaining || nft.totalSupply) <= 0
                     }
                     className={`w-full ${nft.buttonColor} text-white font-bold py-3 px-6 retro-button ${
                       nft.rare ? "pulse-glow" : ""
@@ -281,7 +284,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                   >
                     {processingStates[nft.type] ? "Processing..." : 
                      !walletConnected ? "Connect Wallet First" :
-                     (nftSupply[nft.type]?.remaining || nft.limit) <= 0 ? "SOLD OUT" :
+                     (nftSupply[nft.type]?.remaining || nft.totalSupply) <= 0 ? "SOLD OUT" :
                      "Reserve with Phantom"}
                   </Button>
                 </div>

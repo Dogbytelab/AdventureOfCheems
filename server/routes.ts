@@ -156,11 +156,11 @@ router.post("/nft-reservations/:userUid", async (req: Request, res: Response) =>
       });
     }
 
-    // Validate NFT limits
+    // Validate NFT limits (total supply)
     const nftLimits: { [key: string]: number } = {
-      'NORMIE': 25,
-      'SIGMA': 5,
-      'CHAD': 1
+      'NORMIE': 25000,
+      'SIGMA': 5000,
+      'CHAD': 669
     };
 
     const currentCount = await storage.getNFTReservationCountByType(nftType);
@@ -206,7 +206,7 @@ router.post("/nft-reservations/:userUid", async (req: Request, res: Response) =>
 router.get("/nft-supply", async (req: Request, res: Response) => {
   try {
     const nftTypes = ['normie', 'sigma', 'chad'];
-    const nftLimits = { normie: 25, sigma: 5, chad: 1 };
+    const nftLimits = { normie: 25000, sigma: 5000, chad: 669 };
     const supply: Record<string, { sold: number; remaining: number }> = {};
 
     for (const nftType of nftTypes) {
