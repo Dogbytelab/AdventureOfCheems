@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 
 export default function HomeTab() {
   const handleDownloadGame = () => {
-    alert("Game download will be available soon!");
+    // Open the game download link in a new tab
+    window.open("https://your-game-download-url.com/game.apk", "_blank");
   };
 
   const socialLinks = [
@@ -66,7 +67,7 @@ export default function HomeTab() {
           </svg>
           DOWNLOAD GAME
         </Button>
-        <p className="text-sm text-text-secondary mt-4">Available soon on multiple platforms</p>
+        <p className="text-sm text-text-secondary mt-4">Download APK for Android (200MB)</p>
       </motion.div>
       
       {/* Social Links */}

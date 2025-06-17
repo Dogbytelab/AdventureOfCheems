@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useNFTReservations } from "@/hooks/useFirestore";
 import type { User } from "@shared/schema";
 
 export default function DashboardTab() {
@@ -17,6 +18,8 @@ export default function DashboardTab() {
     queryKey: ["/api/users", firebaseUser?.uid],
     enabled: !!firebaseUser?.uid,
   });
+
+  const { data: nftReservations = [] } = useNFTReservations(user?.id || "");
 
   const handleCopyReferralCode = async () => {
     if (user?.referralCode) {
@@ -47,6 +50,12 @@ export default function DashboardTab() {
     { invites: 100, multiplier: "10x", points: "+100 AOC", completed: (user?.inviteCount || 0) >= 100 },
   ];
 
+  // Calculate NFT reservations count by type
+  const nftCounts = nftReservations.reduce((acc, reservation) => {
+    acc[reservation.nftType] = (acc[reservation.nftType] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
     <div className="max-w-4xl mx-auto">
       <motion.h2
@@ -58,7 +67,7 @@ export default function DashboardTab() {
         DASHBOARD
       </motion.h2>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* AOC Points Card */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -78,7 +87,7 @@ export default function DashboardTab() {
         
         {/* Referral Card */}
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
+          initial={{ opacity: 0, x: 0 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
@@ -107,13 +116,46 @@ export default function DashboardTab() {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* NFT Reservations Card */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <Card className="glass-effect border-accent/30">
+            <CardContent className="pt-6">
+              <h3 className="text-xl font-retro text-accent mb-4">NFT RESERVATIONS</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-text-secondary">Normie ($5):</span>
+                  <span className="text-lg font-bold text-success">{nftCounts.normie || 0}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-text-secondary">Sigma ($25):</span>
+                  <span className="text-lg font-bold text-success">{nftCounts.sigma || 0}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-text-secondary">Chad ($269):</span>
+                  <span className="text-lg font-bold text-success">{nftCounts.chad || 0}</span>
+                </div>
+                <div className="border-t border-gray-600 pt-2 mt-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-bold text-accent">Total NFTs:</span>
+                    <span className="text-xl font-bold text-accent">{nftReservations.length}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
         
         {/* Invites Progress */}
         <motion.div
-          className="lg:col-span-2"
+          className="lg:col-span-3"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
         >
           <Card className="glass-effect border-accent/30">
             <CardContent className="pt-6">

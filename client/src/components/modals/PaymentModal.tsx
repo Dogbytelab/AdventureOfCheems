@@ -30,10 +30,23 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
   });
 
   const handleConfirmPayment = async () => {
-    if (!txHash.trim()) {
+    const trimmedTxHash = txHash.trim();
+    
+    if (!trimmedTxHash) {
       toast({
         title: "Error",
         description: "Please enter a transaction hash",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate Base58 format before making API call
+    const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+    if (!base58Regex.test(trimmedTxHash)) {
+      toast({
+        title: "Invalid Transaction Hash",
+        description: "Please enter a valid Solana transaction hash. It should be 32-44 characters long and contain only Base58 characters.",
         variant: "destructive",
       });
       return;
@@ -52,7 +65,7 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
     
     try {
       // Verify the Solana transaction
-      const verification = await verifySolanaTransaction(txHash, price);
+      const verification = await verifySolanaTransaction(trimmedTxHash, price);
       
       if (verification.valid) {
         // Create the NFT reservation
@@ -60,7 +73,7 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
           userId: user.id,
           nftType,
           price,
-          txHash: txHash.trim(),
+          txHash: trimmedTxHash,
         });
         
         toast({
@@ -78,9 +91,10 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
         });
       }
     } catch (error) {
+      console.error("Payment verification error:", error);
       toast({
-        title: "Error",
-        description: "Failed to verify transaction. Please try again.",
+        title: "Payment Failed",
+        description: error instanceof Error ? error.message : "Failed to verify transaction. Please try again.",
         variant: "destructive",
       });
     } finally {

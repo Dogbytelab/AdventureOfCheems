@@ -1,0 +1,32 @@
+Fix the following issues
+1. 🧩Referral  System Not Working
+   - When a user logs in for the first time using Gmail (Firebase Auth), generate a unique alphanumeric referral code for them (e.g., 6–10 characters).
+   - Store this code in Firestore under their user document (`users/{uid}/referralCode`).
+   - When showing the dashboard, retrieve and display their referral code.
+   - If a user enters someone else's referral code on first login, store that referrer relationship under `users/{uid}/referredBy`.
+   - Also store referral count for each user and keep it updated.
+
+2. 💸 **Reserve Button = Base58 Error**
+   - Fix the error: "Payment failed non base58 characters."
+   - This happens when the user inputs an invalid Solana TxHash.
+   - Validate TxHash format **before** calling Solana API (Base58 regex).
+     - Use this regex to check: `/^[1-9A-HJ-NP-Za-km-z]{32,44}$/`
+   - If it's invalid, show proper error like: “Invalid Transaction Hash format.”
+   - Also validate:
+     - The hash is recent (within 15 mins)
+     - Sent to correct address: `BmzAXDfy6rvSgj4BiZ7R8eEr83S2VpCMKVYwZ3EdgTnp` 
+     - Amount matches selected NFT type ($5, $25, $269)
+   - If everything is okay, mark wishlist as purchased in Firestore with NFT type and TxHash.
+   -also show purchased NFT wishlist counts in dashboard
+
+3. 📲 **APK Upload Problem**
+   - I cannot upload my APK file (200MB) to Replit because of 100MB file size limit.
+   - Add logic so that the game **download button** simply links to a file URL
+   - Later I’ll update that link directly on hosting.
+   - The button should open the link in a new tab, no need to embed the APK.
+
+💡 Notes:
+- This is a wishlist + airdrop site. We do NOT need smart contract or actual NFT minting now.
+- Wishlist acts like in-game reservation; just store data in Firebase after payment is confirmed.
+- Use floating Cheems and heart images like layout.
+Please update my code for all the above issues in a clean and working state.

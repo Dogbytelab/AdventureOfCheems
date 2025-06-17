@@ -6,12 +6,25 @@ export interface SolanaTransactionVerification {
   timestamp?: number;
 }
 
+// Validate Base58 format for Solana transaction hash
+function isValidBase58TxHash(txHash: string): boolean {
+  const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+  return base58Regex.test(txHash);
+}
+
 export async function verifySolanaTransaction(
   txHash: string,
   expectedAmount: number,
   expectedRecipient: string = "BmzAXDfy6rvSgj4BiZ7R8eEr83S2VpCMKVYwZ3EdgTnp"
 ): Promise<SolanaTransactionVerification> {
   try {
+    // First validate the transaction hash format
+    if (!isValidBase58TxHash(txHash)) {
+      return { 
+        valid: false, 
+        error: "Invalid Transaction Hash format. Please ensure you're using a valid Solana transaction hash." 
+      };
+    }
     // Using Solana mainnet RPC
     const rpcUrl = "https://api.mainnet-beta.solana.com";
     
