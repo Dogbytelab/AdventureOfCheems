@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { firebaseStorage } from "./firebaseStorage";
 import { insertUserSchema, insertUserTaskSchema, insertNFTReservationSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -8,7 +8,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user by Firebase UID
   app.get("/api/users/:uid", async (req, res) => {
     try {
-      const user = await storage.getUserByUid(req.params.uid);
+      const user = await firebaseStorage.getUserByUid(req.params.uid);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -24,20 +24,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertUserSchema.parse(req.body);
       
       // Check if user already exists
-      const existingUser = await storage.getUserByUid(validatedData.uid);
+      const existingUser = await firebaseStorage.getUserByUid(validatedData.uid);
       if (existingUser) {
         return res.status(409).json({ message: "User already exists" });
       }
 
       // Generate unique referral code
-      const referralCode = await storage.generateReferralCode();
+      const referralCode = await firebaseStorage.generateReferralCode();
       
       // Clean up invite code - convert empty string to null
       const inviteCode = validatedData.inviteCode && validatedData.inviteCode.trim() 
         ? validatedData.inviteCode.trim() 
         : null;
       
-      const user = await storage.createUser({
+      const user = await firebaseStorage.createUser({
         ...validatedData,
         referralCode,
         inviteCode,
@@ -45,7 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If user used an invite code, update the referrer's invite count
       if (inviteCode) {
-        await storage.incrementInviteCount(inviteCode);
+        await firebaseStorage.incrementInviteCount(inviteCode);
       }
       
       res.status(201).json(user);

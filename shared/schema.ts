@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey(),
   uid: text("uid").notNull().unique(), // Firebase UID
   email: text("email").notNull(),
   referralCode: text("referral_code").notNull().unique(),
@@ -14,7 +14,7 @@ export const users = pgTable("users", {
 });
 
 export const tasks = pgTable("tasks", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
   platform: text("platform").notNull(), // twitter, instagram, telegram
@@ -24,16 +24,16 @@ export const tasks = pgTable("tasks", {
 });
 
 export const userTasks = pgTable("user_tasks", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  taskId: integer("task_id").references(() => tasks.id).notNull(),
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => users.id).notNull(),
+  taskId: text("task_id").references(() => tasks.id).notNull(),
   completed: boolean("completed").default(false).notNull(),
   completedAt: timestamp("completed_at"),
 });
 
 export const nftReservations = pgTable("nft_reservations", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => users.id).notNull(),
   nftType: text("nft_type").notNull(), // normie, sigma, chad
   price: integer("price").notNull(), // in USD
   txHash: text("tx_hash").notNull(),
