@@ -131,7 +131,11 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
 
     try {
       // Get current SOL price
-      const solPrice = await getCurrentSOLPrice();
+      const solPrice = await getCurrentSOLPrice().catch(error => {
+        console.error('Failed to get SOL price:', error);
+        throw new Error('Failed to get current SOL price. Please try again.');
+      });
+      
       const solAmount = calculateSOLAmount(price, solPrice);
 
       toast({
@@ -193,15 +197,28 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
 
       let errorMessage = "Failed to process payment. Please try again.";
 
-      if (error.message?.includes("User rejected")) {
+      if (error.message?.includes("User rejected") || error.message?.includes("cancelled")) {
         errorMessage = "Transaction was cancelled by user.";
+      } else if (error.message?.includes("Insufficient funds") || error.message?.includes("insufficient")) {
+        errorMessage = "Insufficient SOL balance in your wallet.";
+      } else if (error.message?.includes("Phantom wallet not found")) {
+        errorMessage = "Phantom wallet not found. Please install Phantom wallet extension.";
+      } else if (error.message?.includes("not connected")) {
+        errorMessage = "Wallet not connected. Please reconnect your Phantom wallet.";
       } else if (error.message?.includes("already used")) {
-        errorMessage =
-          "This transaction has already been used. Please try with a new transaction.";
+        errorMessage = "This transaction has already been used. Please try with a new transaction.";
       } else if (error.message?.includes("sold out")) {
         errorMessage = `${nftType.toUpperCase()} NFTs are sold out.`;
       } else if (error.message?.includes("already have")) {
         errorMessage = `You already have a reservation for ${nftType.toUpperCase()} NFT.`;
+      } else if (error.message?.includes("verification failed")) {
+        errorMessage = "Transaction verification failed. Please contact support.";
+      } else if (error.message?.includes("SOL price")) {
+        errorMessage = "Failed to get current SOL price. Please try again in a moment.";
+      } else if (error.message?.includes("Failed to verify transaction")) {
+        errorMessage = "Transaction verification failed. Please try again.";
+      } else if (error.message?.includes("Failed to create NFT reservation")) {
+        errorMessage = "Failed to create NFT reservation. Please try again.";
       }
 
       toast({

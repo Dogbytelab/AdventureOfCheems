@@ -209,8 +209,14 @@ export async function sendSOLTransaction(
     const { solana } = window as any;
     
     if (!solana?.isPhantom) {
-      throw new Error('Phantom wallet not found');
+      throw new Error('Phantom wallet not found. Please install Phantom wallet.');
     }
+
+    if (!solana.isConnected) {
+      throw new Error('Phantom wallet is not connected. Please connect your wallet first.');
+    }
+
+    console.log(`Initiating transaction: ${amountSOL.toFixed(4)} SOL to ${recipientAddress}`);
 
     // Create transaction
     const transaction = await solana.request({
@@ -222,8 +228,22 @@ export async function sendSOLTransaction(
           value: Math.floor(amountSOL * LAMPORTS_PER_SOL), // Convert to lamports
         }
       }
+    }).catch((error: any) => {
+      console.error('Phantom transaction request failed:', error);
+      if (error.message?.includes('User rejected')) {
+        throw new Error('Transaction was cancelled by user');
+      }
+      if (error.message?.includes('Insufficient funds')) {
+        throw new Error('Insufficient SOL balance in wallet');
+      }
+      throw new Error('Transaction failed: ' + (error.message || 'Unknown error'));
     });
 
+    if (!transaction?.signature) {
+      throw new Error('Transaction failed: No signature returned');
+    }
+
+    console.log('Transaction successful:', transaction.signature);
     return transaction.signature;
   } catch (error) {
     console.error('Transaction failed:', error);
