@@ -36,8 +36,11 @@ export const nftReservations = pgTable("nft_reservations", {
   userId: text("user_id").references(() => users.id).notNull(),
   nftType: text("nft_type").notNull(), // normie, sigma, chad
   price: integer("price").notNull(), // in USD
-  txHash: text("tx_hash").notNull(),
+  txHash: text("tx_hash").notNull().unique(), // Prevent reuse
+  walletAddress: text("wallet_address").notNull(), // Sender's wallet
+  solAmount: text("sol_amount").notNull(), // Exact SOL amount paid
   verified: boolean("verified").default(false).notNull(),
+  verificationAttempts: integer("verification_attempts").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -61,6 +64,7 @@ export const insertUserTaskSchema = createInsertSchema(userTasks).omit({
 export const insertNFTReservationSchema = createInsertSchema(nftReservations).omit({
   id: true,
   verified: true,
+  verificationAttempts: true,
   createdAt: true,
 });
 

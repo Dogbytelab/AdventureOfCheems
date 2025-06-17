@@ -29,6 +29,10 @@ export interface IStorage {
 
   createNFTReservation(reservation: InsertNFTReservation): Promise<NFTReservation>;
   getNFTReservations(userUid: string): Promise<NFTReservation[]>;
+  getAllNFTReservations(): Promise<NFTReservation[]>;
+  isTransactionHashUsed(txHash: string): Promise<boolean>;
+  getNFTReservationCountByType(nftType: string): Promise<number>;
+  getUserNFTReservationsByType(userUid: string, nftType: string): Promise<NFTReservation[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -216,6 +220,7 @@ export class MemStorage implements IStorage {
       id: id.toString(),
       ...reservation,
       verified: false,
+      verificationAttempts: 0,
       createdAt: new Date(),
     };
     this.nftReservations.set(nftReservation.id, nftReservation);
@@ -226,6 +231,28 @@ export class MemStorage implements IStorage {
     const user = await this.getUserByUid(userUid);
     if (!user) return [];
     return Array.from(this.nftReservations.values()).filter(r => r.userId === user.id);
+  }
+
+  async getAllNFTReservations(): Promise<NFTReservation[]> {
+    return Array.from(this.nftReservations.values());
+  }
+
+  async isTransactionHashUsed(txHash: string): Promise<boolean> {
+    return Array.from(this.nftReservations.values()).some(r => r.txHash === txHash);
+  }
+
+  async getNFTReservationCountByType(nftType: string): Promise<number> {
+    return Array.from(this.nftReservations.values()).filter(r => 
+      r.nftType.toLowerCase() === nftType.toLowerCase()
+    ).length;
+  }
+
+  async getUserNFTReservationsByType(userUid: string, nftType: string): Promise<NFTReservation[]> {
+    const user = await this.getUserByUid(userUid);
+    if (!user) return [];
+    return Array.from(this.nftReservations.values()).filter(r => 
+      r.userId === user.id && r.nftType.toLowerCase() === nftType.toLowerCase()
+    );
   }
 }
 
