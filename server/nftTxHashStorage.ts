@@ -1,7 +1,8 @@
 import { 
   ref, 
   get, 
-  set 
+  set,
+  update
 } from "firebase/database";
 import { rtdb } from "./firebase";
 
@@ -16,6 +17,7 @@ export class NFTTxHashStorage {
   /**
    * Reserve an NFT with transaction hash as key
    * Throws error if transaction hash already exists
+   * Also updates user wishlist counts
    */
   async reserveNFT(txHash: string, userId: string, nftType: "NORMIE" | "SIGMA" | "CHAD"): Promise<void> {
     const txRef = ref(rtdb, `nft_txHashes/${txHash}`);
@@ -25,11 +27,44 @@ export class NFTTxHashStorage {
       throw new Error("Transaction already used");
     }
 
+    // Save the reservation
     await set(txRef, {
       userId: userId,
       nftType: nftType,
       timestamp: Date.now()
     });
+
+    // Update user wishlist counts
+    await this.updateUserWishlistCounts(userId, nftType);
+  }
+
+  /**
+   * Update user wishlist counts in Firebase
+   */
+  private async updateUserWishlistCounts(userId: string, nftType: "NORMIE" | "SIGMA" | "CHAD"): Promise<void> {
+    const wishlistRef = ref(rtdb, `users/${userId}/wishlist`);
+    const snapshot = await get(wishlistRef);
+
+    let wishlist = snapshot.exists() ? snapshot.val() : {
+      NORMIE: 0,
+      SIGMA: 0,
+      CHAD: 0,
+      total: 0
+    };
+
+    // Ensure all NFT types exist in wishlist
+    if (typeof wishlist.NORMIE !== 'number') wishlist.NORMIE = 0;
+    if (typeof wishlist.SIGMA !== 'number') wishlist.SIGMA = 0;
+    if (typeof wishlist.CHAD !== 'number') wishlist.CHAD = 0;
+
+    // Increment the specific NFT type count
+    wishlist[nftType]++;
+    
+    // Recalculate total
+    wishlist.total = wishlist.NORMIE + wishlist.SIGMA + wishlist.CHAD;
+
+    // Update Firebase
+    await set(wishlistRef, wishlist);
   }
 
   /**
@@ -141,6 +176,31 @@ export class NFTTxHashStorage {
     }
 
     return snapshot.val();
+  }
+
+  /**
+   * Get user's wishlist counts directly from Firebase
+   */
+  async getUserWishlistCounts(userId: string): Promise<{NORMIE: number, SIGMA: number, CHAD: number, total: number}> {
+    const wishlistRef = ref(rtdb, `users/${userId}/wishlist`);
+    const snapshot = await get(wishlistRef);
+
+    if (snapshot.exists()) {
+      const wishlist = snapshot.val();
+      return {
+        NORMIE: wishlist.NORMIE || 0,
+        SIGMA: wishlist.SIGMA || 0,
+        CHAD: wishlist.CHAD || 0,
+        total: wishlist.total || 0
+      };
+    }
+
+    return {
+      NORMIE: 0,
+      SIGMA: 0,
+      CHAD: 0,
+      total: 0
+    };
   }
 }
 

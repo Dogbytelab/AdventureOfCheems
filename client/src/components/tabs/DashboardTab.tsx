@@ -50,14 +50,14 @@ export default function DashboardTab() {
     },
   });
 
-  // Get wishlist counts from user data
+  // Get wishlist counts from new API endpoint
   const { data: wishlistCounts } = useQuery({
-    queryKey: ["/api/wishlist-counts", user?.uid],
+    queryKey: ["/api/wishlist", user?.uid],
     enabled: !!user?.uid,
     queryFn: async () => {
       const response = await apiRequest(
         "GET",
-        `/api/users/${user?.uid}/wishlist`,
+        `/api/wishlist/${user?.uid}`,
       );
       return response.json();
     },
@@ -144,12 +144,12 @@ export default function DashboardTab() {
     },
   ];
 
-  // Use wishlist counts if available, otherwise fall back to reservation counting
+  // Use wishlist counts from Firebase
   const nftCounts = wishlistCounts || {
-    NORMIE: nftReservations.filter(r => r.nftType === 'NORMIE').length,
-    SIGMA: nftReservations.filter(r => r.nftType === 'SIGMA').length,
-    CHAD: nftReservations.filter(r => r.nftType === 'CHAD').length,
-    total: nftReservations.length
+    NORMIE: 0,
+    SIGMA: 0,
+    CHAD: 0,
+    total: 0
   };
 
   return (

@@ -295,6 +295,17 @@ router.get("/users/:userId/wishlist", async (req: Request, res: Response) => {
   }
 });
 
+// Get user wishlist counts
+router.get("/wishlist/:userUid", async (req: Request, res: Response) => {
+  try {
+    const wishlistCounts = await nftTxHashStorage.getUserWishlistCounts(req.params.userUid);
+    res.json(wishlistCounts);
+  } catch (error) {
+    console.error("Error getting wishlist counts:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // Add verification endpoint
 router.post("/verify-transaction", async (req: Request, res: Response) => {
   try {
