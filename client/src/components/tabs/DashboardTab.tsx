@@ -50,18 +50,37 @@ export default function DashboardTab() {
     },
   });
 
-  // Get wishlist counts from new API endpoint
-  const { data: wishlistCounts } = useQuery({
-    queryKey: ["/api/wishlist", user?.uid],
+  // Get NFT ownership counts from dedicated API endpoint
+  const { data: nftCounts, refetch: refetchNFTCounts } = useQuery({
+    queryKey: ["/api/nft-ownership", user?.uid],
     enabled: !!user?.uid,
     queryFn: async () => {
       const response = await apiRequest(
         "GET",
-        `/api/wishlist/${user?.uid}`,
+        `/api/nft-ownership/${user?.uid}`,
       );
       return response.json();
     },
   });
+
+  // Refetch NFT counts periodically to ensure real-time updates
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      if (user?.uid) {
+        refetchNFTCounts();
+      }
+    }, 3000); // Refetch every 3 seconds for real-time updates
+
+    return () => clearInterval(interval);
+  }, [user?.uid, refetchNFTCounts]);
+
+  // Use NFT ownership counts from Firebase
+  const nftOwnership = nftCounts || {
+    NORMIE: 0,
+    SIGMA: 0,
+    CHAD: 0,
+    total: 0
+  };
 
   const handleCopyReferralCode = async () => {
     if (user?.referralCode) {
@@ -145,7 +164,7 @@ export default function DashboardTab() {
   ];
 
   // Use wishlist counts from Firebase
-  const nftCounts = wishlistCounts || {
+  const nftCounts = nftOwnership || {
     NORMIE: 0,
     SIGMA: 0,
     CHAD: 0,

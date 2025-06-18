@@ -243,6 +243,46 @@ router.get("/nft-supply", async (req: Request, res: Response) => {
   }
 });
 
+// Get user NFT ownership counts - dedicated endpoint for actual NFT ownership
+router.get("/nft-ownership/:userUid", async (req: Request, res: Response) => {
+  try {
+    const { userUid } = req.params;
+    
+    if (!userUid) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    // Get NFT ownership data directly from Firebase NFT node
+    const { ref, get } = await import("firebase/database");
+    const { rtdb } = await import("./firebase");
+    
+    const nftRef = ref(rtdb, `users/${userUid}/NFT`);
+    const nftSnapshot = await get(nftRef);
+    
+    let nftOwnership = {
+      NORMIE: 0,
+      SIGMA: 0,
+      CHAD: 0,
+      total: 0
+    };
+    
+    if (nftSnapshot.exists()) {
+      const nftData = nftSnapshot.val();
+      nftOwnership = {
+        NORMIE: nftData.NORMIE || 0,
+        SIGMA: nftData.SIGMA || 0,
+        CHAD: nftData.CHAD || 0,
+        total: nftData.total || ((nftData.NORMIE || 0) + (nftData.SIGMA || 0) + (nftData.CHAD || 0))
+      };
+    }
+    
+    res.json(nftOwnership);
+  } catch (error) {
+    console.error("Error getting NFT ownership:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // Get user wishlist counts - unified endpoint
 router.get("/wishlist/:userUid", async (req: Request, res: Response) => {
   try {

@@ -621,6 +621,38 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
     }
   }
 
+  async getNFTOwnership(userId: string): Promise<{NORMIE: number, SIGMA: number, CHAD: number, total: number}> {
+    try {
+      const nftRef = ref(rtdb, `users/${userId}/NFT`);
+      const snapshot = await get(nftRef);
+      
+      if (snapshot.exists()) {
+        const nftData = snapshot.val();
+        return {
+          NORMIE: nftData.NORMIE || 0,
+          SIGMA: nftData.SIGMA || 0,
+          CHAD: nftData.CHAD || 0,
+          total: nftData.total || ((nftData.NORMIE || 0) + (nftData.SIGMA || 0) + (nftData.CHAD || 0))
+        };
+      }
+      
+      return {
+        NORMIE: 0,
+        SIGMA: 0,
+        CHAD: 0,
+        total: 0
+      };
+    } catch (error) {
+      console.error('Error getting NFT ownership:', error);
+      return {
+        NORMIE: 0,
+        SIGMA: 0,
+        CHAD: 0,
+        total: 0
+      };
+    }
+  }
+
   async getNFTReservationCountByType(nftType: string): Promise<number> {
     try {
       const reservationsRef = ref(rtdb, 'nft_reservations');
