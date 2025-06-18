@@ -28,7 +28,7 @@ export const NFT_LIMITS: NFTLimits = {
 };
 
 export const NFT_PRICES = {
-  NORMIE: 0.05,
+  NORMIE: 0.1,
   SIGMA: 25,
   CHAD: 269
 };

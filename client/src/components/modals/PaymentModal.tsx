@@ -41,12 +41,9 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
           setSolAmount(calculateSOLAmount(price, currentPrice));
         } catch (error) {
           console.error("Failed to fetch SOL price:", error);
-          // Set fallback values to prevent UI issues
-          setSolPrice(100);
-          setSolAmount(calculateSOLAmount(price, 100));
           toast({
             title: "Price Fetch Error",
-            description: "Using fallback SOL price. Please refresh if needed.",
+            description: "Unable to fetch current SOL price. Please try again.",
             variant: "destructive",
           });
         }
@@ -82,7 +79,7 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
       return;
     }
 
-    if (!user) {
+    if (!user && !firebaseUser?.uid) {
       toast({
         title: "Authentication Error",
         description: "Please log in to continue",
@@ -90,6 +87,9 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
       });
       return;
     }
+
+    // Use firebaseUser.uid as fallback if user query fails
+    const userUid = user?.uid || firebaseUser?.uid;
 
     setIsVerifying(true);
 
@@ -117,7 +117,7 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
 
       if (verification.valid) {
         // Create the NFT reservation via API
-        const reservationResponse = await fetch(`/api/nft-reservations/${user.uid}`, {
+        const reservationResponse = await fetch(`/api/nft-reservations/${userUid}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
