@@ -51,7 +51,7 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
           });
         }
       };
-      
+
       // Wrap in try-catch to prevent unhandled rejections
       fetchSOLPrice().catch((error) => {
         console.error("Unhandled error in fetchSOLPrice:", error);
