@@ -79,7 +79,7 @@ export default function DashboardTab() {
     NORMIE: 0,
     SIGMA: 0,
     CHAD: 0,
-    total: 0
+    total: 0,
   };
 
   const handleCopyReferralCode = async () => {
@@ -279,10 +279,13 @@ export default function DashboardTab() {
                 <div className="border-t border-gray-600 pt-2 mt-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-bold text-accent">
-                      Total NFTs:
+                      My Meme Wealth💰:
                     </span>
                     <span className="text-xl font-bold text-accent">
-                      {nftOwnership.total || (nftOwnership.NORMIE || 0) + (nftOwnership.SIGMA || 0) + (nftOwnership.CHAD || 0)}
+                      {nftOwnership.total ||
+                        (nftOwnership.NORMIE || 0) +
+                          (nftOwnership.SIGMA || 0) +
+                          (nftOwnership.CHAD || 0)}
                     </span>
                   </div>
                 </div>
