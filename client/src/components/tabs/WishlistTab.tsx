@@ -41,7 +41,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
     {
       type: "NORMIE",
       name: "🤡 NORMIE",
-      price: 0.1,
+      price: 5,
       limit: 25,
       totalSupply: 25000,
       description: "Common NFT - Up to 25 per user",
