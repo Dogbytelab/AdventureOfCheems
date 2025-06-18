@@ -11,7 +11,7 @@ export interface SolanaTransactionVerification {
 
 const RECIPIENT_WALLET = "BmzAXDfy6rvSgj4BiZ7R8eEr83S2VpCMKVYwZ3EdgTnp";
 const TOLERANCE_PERCENT = 0.05; // 5% tolerance for price fluctuation
-const MAX_TRANSACTION_AGE_MINUTES = 15;
+const MAX_TRANSACTION_AGE_MINUTES = 120;
 
 // Use mainnet for production
 const connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
