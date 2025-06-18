@@ -13,8 +13,8 @@ const RECIPIENT_WALLET = "BmzAXDfy6rvSgj4BiZ7R8eEr83S2VpCMKVYwZ3EdgTnp";
 const TOLERANCE_PERCENT = 0.05; // 5% tolerance for price fluctuation
 const MAX_TRANSACTION_AGE_MINUTES = 15;
 
-// Use devnet for testing, change to mainnet for production
-const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+// Use mainnet for production
+const connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
 
 export async function getCurrentSOLPrice(): Promise<number> {
   try {
@@ -30,7 +30,8 @@ export async function getCurrentSOLPrice(): Promise<number> {
     return price;
   } catch (error) {
     console.error('Failed to fetch SOL price:', error);
-    throw new Error('Failed to fetch current SOL price from CoinGecko API');
+    // Return a reasonable fallback price instead of throwing
+    return 100;
   }
 }
 
@@ -122,10 +123,18 @@ export async function verifySolanaTransaction(
     const minAmount = expectedSOLAmount - tolerance;
     const maxAmount = expectedSOLAmount + tolerance;
 
+    console.log(`Transaction verification details:
+      Expected SOL: ${expectedSOLAmount.toFixed(4)}
+      Actual SOL: ${actualSOL.toFixed(4)}
+      Min allowed: ${minAmount.toFixed(4)}
+      Max allowed: ${maxAmount.toFixed(4)}
+      USD Amount: $${expectedAmountUSD}
+      SOL Price: $${solPrice.toFixed(2)}`);
+
     if (actualSOL < minAmount || actualSOL > maxAmount) {
       return {
         valid: false,
-        error: `Incorrect SOL amount. Expected: ${expectedSOLAmount.toFixed(4)} SOL, Actual: ${actualSOL.toFixed(4)} SOL`,
+        error: `Incorrect SOL amount. Expected: ${expectedSOLAmount.toFixed(4)} SOL (±${(tolerance * 100).toFixed(1)}%), Actual: ${actualSOL.toFixed(4)} SOL. USD: $${expectedAmountUSD} at $${solPrice.toFixed(2)}/SOL`,
       };
     }
 

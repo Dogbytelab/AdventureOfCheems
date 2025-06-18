@@ -242,8 +242,11 @@ router.post("/verify-transaction", async (req: Request, res: Response) => {
 
     // Use proper Solana verification
     const { verifySolanaTransaction } = await import("./solanaVerification");
+    console.log(`Verifying transaction: ${txHash} for $${expectedAmountUSD} USD (${nftType})`);
+    
     const verification = await verifySolanaTransaction(txHash, expectedAmountUSD, nftType);
     
+    console.log("Verification result:", verification);
     res.json(verification);
   } catch (error) {
     console.error("Error verifying transaction:", error);

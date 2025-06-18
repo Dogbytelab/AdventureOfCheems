@@ -37,8 +37,8 @@ const RECIPIENT_WALLET = "BmzAXDfy6rvSgj4BiZ7R8eEr83S2VpCMKVYwZ3EdgTnp";
 const TOLERANCE_PERCENT = 0.05; // 5% tolerance for price fluctuation
 const MAX_TRANSACTION_AGE_MINUTES = 15;
 
-// Use devnet for testing
-const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+// Use mainnet for production
+const connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
 
 export interface WalletType {
   name: string;

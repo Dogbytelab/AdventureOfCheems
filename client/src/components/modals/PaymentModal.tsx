@@ -106,6 +106,8 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
 
       const verification = await verificationResponse.json();
       
+      console.log("Transaction verification result:", verification);
+      
       if (verification.valid) {
         // Create the NFT reservation via API
         const reservationResponse = await fetch(`/api/nft-reservations/${user.uid}`, {
@@ -118,7 +120,7 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
             price,
             txHash: trimmedTxHash,
             walletAddress: verification.walletAddress || "unknown",
-            solAmount: (price / (solPrice || 100)).toFixed(4),
+            solAmount: solAmount ? solAmount.toFixed(4) : "0.0000",
           }),
         });
 
