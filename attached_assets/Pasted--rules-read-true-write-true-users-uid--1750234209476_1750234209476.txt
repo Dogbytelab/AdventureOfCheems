@@ -1,3 +1,4 @@
+
 {
   "rules": {
     ".read": true,
@@ -57,6 +58,9 @@
           },
           "timestamp": {
             ".validate": "newData.val() == null || newData.isNumber()"
+          },
+          "$nftType": {
+            ".validate": "newData.isString() || newData.val() == null"
           }
         },
         "createdAt": {
@@ -69,6 +73,56 @@
       ".write": true,
       "$taskId": {
         ".validate": "newData.hasChildren(['name', 'description', 'platform', 'url', 'points', 'isActive'])"
+      }
+    },
+    "nft_reservations": {
+      ".read": true,
+      ".write": true,
+      "$reservationId": {
+        ".validate": "newData.hasChildren(['userId', 'nftType', 'price', 'txHash', 'walletAddress', 'solAmount'])",
+        "userId": {
+          ".validate": "newData.isString()"
+        },
+        "nftType": {
+          ".validate": "newData.isString()"
+        },
+        "price": {
+          ".validate": "newData.isNumber()"
+        },
+        "txHash": {
+          ".validate": "newData.isString()"
+        },
+        "walletAddress": {
+          ".validate": "newData.isString()"
+        },
+        "solAmount": {
+          ".validate": "newData.isString()"
+        },
+        "verified": {
+          ".validate": "newData.isBoolean()"
+        },
+        "verificationAttempts": {
+          ".validate": "newData.isNumber()"
+        },
+        "createdAt": {
+          ".validate": "newData.val() != null"
+        }
+      }
+    },
+    "transactions": {
+      ".read": true,
+      ".write": true,
+      "$txHash": {
+        ".validate": "newData.hasChildren(['userId', 'amount', 'timestamp'])",
+        "userId": {
+          ".validate": "newData.isString()"
+        },
+        "amount": {
+          ".validate": "newData.isNumber()"
+        },
+        "timestamp": {
+          ".validate": "newData.val() != null"
+        }
       }
     }
   }
