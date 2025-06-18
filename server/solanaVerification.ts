@@ -118,12 +118,13 @@ export async function verifySolanaTransaction(
     const actualLamports = postBalance - preBalance;
     const actualSOL = actualLamports / LAMPORTS_PER_SOL;
 
-    // Verify amount (with tolerance)
-    const tolerance = expectedSOLAmount * TOLERANCE_PERCENT;
+    // Verify amount (with tolerance) - ensure minimum tolerance for very small amounts
+    const tolerance = Math.max(expectedSOLAmount * TOLERANCE_PERCENT, 0.00005); // Minimum 0.00005 SOL tolerance
     const minAmount = expectedSOLAmount - tolerance;
     const maxAmount = expectedSOLAmount + tolerance;
 
-    console.log(`Transaction verification details:
+    const tolerancePercent = tolerance / expectedSOLAmount * 100;
+      console.log(`Transaction verification details:
       Transaction Hash: ${txHash}
       Expected SOL: ${expectedSOLAmount.toFixed(4)}
       Actual SOL: ${actualSOL.toFixed(4)}
@@ -131,7 +132,7 @@ export async function verifySolanaTransaction(
       Max allowed: ${maxAmount.toFixed(4)}
       USD Amount: $${expectedAmountUSD}
       SOL Price: $${solPrice.toFixed(2)}
-      Tolerance: ±${(tolerance * 100).toFixed(1)}%
+      Tolerance: ±${tolerancePercent.toFixed(1)}%
       Transaction age: ${ageMinutes.toFixed(1)} minutes
       Recipient found at index: ${recipientIndex}
       Pre balance: ${preBalance} lamports
@@ -141,7 +142,7 @@ export async function verifySolanaTransaction(
     if (actualSOL < minAmount || actualSOL > maxAmount) {
       return {
         valid: false,
-        error: `Incorrect SOL amount. Expected: ${expectedSOLAmount.toFixed(4)} SOL (±${(tolerance * 100).toFixed(1)}%), Actual: ${actualSOL.toFixed(4)} SOL. USD: $${expectedAmountUSD} at $${solPrice.toFixed(2)}/SOL`,
+        error: `Incorrect SOL amount. Expected: ${expectedSOLAmount.toFixed(4)} SOL (±${(tolerance / expectedSOLAmount * 100).toFixed(1)}%), Actual: ${actualSOL.toFixed(4)} SOL. USD: $${expectedAmountUSD} at $${solPrice.toFixed(2)}/SOL`,
       };
     }
 
