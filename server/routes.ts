@@ -178,13 +178,7 @@ router.post("/nft-reservations/:userUid", async (req: Request, res: Response) =>
       });
     }
 
-    // Check user's existing reservations for this NFT type
-    const userReservations = await storage.getUserNFTReservationsByType(userUid, nftType);
-    if (userReservations.length > 0) {
-      return res.status(400).json({ 
-        message: `You already have a reservation for ${nftType.toUpperCase()} NFT.` 
-      });
-    }
+    // Multiple reservations of the same type are now allowed per user
 
     const reservation = await storage.createNFTReservation({
       userId: userUid,

@@ -100,20 +100,35 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
         }),
       });
 
+      if (!verificationResponse.ok) {
+        throw new Error(`Server error: ${verificationResponse.status}`);
+      }
+
       const verification = await verificationResponse.json();
       
       if (verification.valid) {
-        // Create the NFT reservation
-        await createReservation.mutateAsync({
-          userId: user.id,
-          nftType,
-          price,
-          txHash: trimmedTxHash,
+        // Create the NFT reservation via API
+        const reservationResponse = await fetch(`/api/nft-reservations/${user.uid}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            nftType,
+            price,
+            txHash: trimmedTxHash,
+            walletAddress: verification.walletAddress || "unknown",
+            solAmount: (price / (solPrice || 100)).toFixed(4),
+          }),
         });
+
+        if (!reservationResponse.ok) {
+          throw new Error("Failed to create NFT reservation");
+        }
         
         toast({
           title: "Payment Verified!",
-          description: "NFT reserved successfully. You'll receive your NFT after game launch.",
+          description: `Your ${nftType.toUpperCase()} NFT has been reserved successfully. You'll receive it after game launch.`,
         });
         
         onClose();

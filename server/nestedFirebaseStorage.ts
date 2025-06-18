@@ -382,29 +382,60 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
     solAmount: string;
   }): Promise<NFTReservation> {
     try {
+      // Check if transaction hash is already used globally
+      const txSnapshot = await get(ref(rtdb, `transactions/${reservation.txHash}`));
+      if (txSnapshot.exists()) {
+        throw new Error('Transaction hash has already been used');
+      }
+
       const reservationId = `${Date.now()}_${reservation.userId}`;
       
-      // Store in dedicated nft_reservations structure
-      await set(ref(rtdb, `nft_reservations/${reservationId}`), {
-        userId: reservation.userId,
-        nftType: reservation.nftType,
-        price: reservation.price,
-        txHash: reservation.txHash,
-        walletAddress: reservation.walletAddress,
-        solAmount: reservation.solAmount,
-        verified: false,
-        verificationAttempts: 0,
-        createdAt: serverTimestamp()
-      });
-
-      // Also update user's wishlist for compatibility
-      await update(ref(rtdb, `users/${reservation.userId}/wishlist`), {
+      // Create transaction entry for global tracking
+      const transactionData = {
+        uid: reservation.userId,
         type: reservation.nftType,
         amount: reservation.price,
-        txHash: reservation.txHash,
-        confirmed: false,
+        confirmed: true,
         timestamp: serverTimestamp()
-      });
+      };
+
+      // Get current user wishlist data
+      const userWishlistRef = ref(rtdb, `users/${reservation.userId}/wishlist/${reservation.nftType}`);
+      const currentWishlistSnapshot = await get(userWishlistRef);
+      const currentReservations = currentWishlistSnapshot.exists() ? currentWishlistSnapshot.val() : [];
+      
+      // Ensure it's an array
+      const reservationsArray = Array.isArray(currentReservations) ? currentReservations : [];
+      
+      // Create new reservation entry
+      const newReservation = {
+        txHash: reservation.txHash,
+        amount: reservation.price,
+        confirmed: true,
+        timestamp: serverTimestamp()
+      };
+
+      // Add to reservations array
+      reservationsArray.push(newReservation);
+
+      // Execute all operations atomically
+      const updates = {
+        [`transactions/${reservation.txHash}`]: transactionData,
+        [`users/${reservation.userId}/wishlist/${reservation.nftType}`]: reservationsArray,
+        [`nft_reservations/${reservationId}`]: {
+          userId: reservation.userId,
+          nftType: reservation.nftType,
+          price: reservation.price,
+          txHash: reservation.txHash,
+          walletAddress: reservation.walletAddress,
+          solAmount: reservation.solAmount,
+          verified: true,
+          verificationAttempts: 1,
+          createdAt: serverTimestamp()
+        }
+      };
+
+      await update(ref(rtdb), updates);
 
       return {
         id: reservationId,
@@ -414,8 +445,8 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
         txHash: reservation.txHash,
         walletAddress: reservation.walletAddress,
         solAmount: reservation.solAmount,
-        verified: false,
-        verificationAttempts: 0,
+        verified: true,
+        verificationAttempts: 1,
         createdAt: new Date(),
       };
     } catch (error) {
@@ -553,14 +584,8 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
 
   async isTransactionHashUsed(txHash: string): Promise<boolean> {
     try {
-      const reservationsRef = ref(rtdb, 'nft_reservations');
-      const snapshot = await get(reservationsRef);
-      
-      if (snapshot.exists()) {
-        const reservationsData = snapshot.val();
-        return Object.values(reservationsData).some((data: any) => data.txHash === txHash);
-      }
-      return false;
+      const txSnapshot = await get(ref(rtdb, `transactions/${txHash}`));
+      return txSnapshot.exists();
     } catch (error) {
       console.error('Error checking transaction hash:', error);
       return false;
