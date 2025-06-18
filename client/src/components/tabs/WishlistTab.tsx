@@ -99,7 +99,8 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
           Reserve Your NFT
         </h2>
         <p className="text-text-secondary mb-6">
-          Send SOL manually to reserve your NFTs. Multiple reservations of the same type are allowed.
+          Send SOL manually to reserve your NFTs. Multiple reservations of the
+          same type are allowed.
         </p>
       </motion.div>
 
@@ -157,8 +158,9 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                       className="bg-gradient-to-r from-accent to-success h-2 rounded-full transition-all duration-300"
                       style={{
                         width: `${Math.min(
-                          ((nftSupply[nft.type]?.sold || 0) / nft.totalSupply) * 100,
-                          100
+                          ((nftSupply[nft.type]?.sold || 0) / nft.totalSupply) *
+                            100,
+                          100,
                         )}%`,
                       }}
                     ></div>
@@ -193,21 +195,22 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
         <h3 className="text-xl font-retro text-accent mb-4">How It Works</h3>
         <div className="grid gap-4 md:grid-cols-3 text-sm">
           <div>
-            <div className="text-lg font-bold text-success mb-2">1</div>
+            <div className="text-lg font-bold text-success mb-4">1</div>
             <p className="text-text-secondary">
-              Click "Reserve Now" to open the payment modal
+              Click “Reserve Now” to begin your NFT reservation.
             </p>
           </div>
           <div>
             <div className="text-lg font-bold text-success mb-2">2</div>
             <p className="text-text-secondary">
-              Send the exact SOL amount to our wallet address
+              Send the exact SOL amount to our official wallet address
             </p>
           </div>
           <div>
             <div className="text-lg font-bold text-success mb-2">3</div>
             <p className="text-text-secondary">
-              Paste your transaction hash to confirm reservation
+              Paste your transaction hash to complete and confirm your
+              reservation.
             </p>
           </div>
         </div>
