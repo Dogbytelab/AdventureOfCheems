@@ -45,6 +45,7 @@ export function useCreateNFTReservation() {
       queryClient.invalidateQueries({ queryKey: ["/api/nft-reservations", variables.userId] });
       queryClient.invalidateQueries({ queryKey: ["/api/nft-supply"] });
       queryClient.invalidateQueries({ queryKey: ["/api/users", variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wishlist", variables.userId] });
     },
   });
 }

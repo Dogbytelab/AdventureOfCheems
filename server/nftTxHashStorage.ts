@@ -34,38 +34,10 @@ export class NFTTxHashStorage {
       timestamp: Date.now()
     });
 
-    // Update user wishlist counts
-    await this.updateUserWishlistCounts(userId, nftType);
+    // Wishlist counts are calculated dynamically from nft_txHashes structure
   }
 
-  /**
-   * Update user wishlist counts in Firebase
-   */
-  private async updateUserWishlistCounts(userId: string, nftType: "NORMIE" | "SIGMA" | "CHAD"): Promise<void> {
-    const wishlistRef = ref(rtdb, `users/${userId}/wishlist`);
-    const snapshot = await get(wishlistRef);
 
-    let wishlist = snapshot.exists() ? snapshot.val() : {
-      NORMIE: 0,
-      SIGMA: 0,
-      CHAD: 0,
-      total: 0
-    };
-
-    // Ensure all NFT types exist in wishlist
-    if (typeof wishlist.NORMIE !== 'number') wishlist.NORMIE = 0;
-    if (typeof wishlist.SIGMA !== 'number') wishlist.SIGMA = 0;
-    if (typeof wishlist.CHAD !== 'number') wishlist.CHAD = 0;
-
-    // Increment the specific NFT type count
-    wishlist[nftType]++;
-    
-    // Recalculate total
-    wishlist.total = wishlist.NORMIE + wishlist.SIGMA + wishlist.CHAD;
-
-    // Update Firebase
-    await set(wishlistRef, wishlist);
-  }
 
   /**
    * Check if a transaction hash is already used
@@ -179,28 +151,29 @@ export class NFTTxHashStorage {
   }
 
   /**
-   * Get user's wishlist counts directly from Firebase
+   * Get user's wishlist counts by counting from nft_txHashes structure
    */
   async getUserWishlistCounts(userId: string): Promise<{NORMIE: number, SIGMA: number, CHAD: number, total: number}> {
-    const wishlistRef = ref(rtdb, `users/${userId}/wishlist`);
-    const snapshot = await get(wishlistRef);
-
-    if (snapshot.exists()) {
-      const wishlist = snapshot.val();
-      return {
-        NORMIE: wishlist.NORMIE || 0,
-        SIGMA: wishlist.SIGMA || 0,
-        CHAD: wishlist.CHAD || 0,
-        total: wishlist.total || 0
-      };
-    }
-
-    return {
+    // Count NFTs directly from the nft_txHashes structure
+    const userReservations = await this.getUserReservations(userId);
+    
+    const counts = {
       NORMIE: 0,
       SIGMA: 0,
       CHAD: 0,
       total: 0
     };
+
+    userReservations.forEach(reservation => {
+      const nftType = reservation.nftType as keyof typeof counts;
+      if (counts[nftType] !== undefined) {
+        counts[nftType]++;
+      }
+    });
+
+    counts.total = counts.NORMIE + counts.SIGMA + counts.CHAD;
+    
+    return counts;
   }
 }
 
