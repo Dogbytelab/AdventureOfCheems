@@ -1,0 +1,75 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": true,
+    "users": {
+      "$uid": {
+        ".validate": "newData.hasChildren(['auth', 'referral', 'aocPoints', 'tasks', 'wishlist'])",
+        "auth": {
+          ".validate": "newData.hasChildren(['email'])",
+          "email": {
+            ".validate": "newData.isString()"
+          },
+          "displayName": {
+            ".validate": "newData.isString()"
+          }
+        },
+        "referral": {
+          ".validate": "newData.hasChildren(['code'])",
+          "code": {
+            ".validate": "newData.isString() && newData.val().length == 6"
+          },
+          "invitedBy": {
+            ".validate": "newData.isString() || newData.val() == null"
+          },
+          "inviteCount": {
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          }
+        },
+        "aocPoints": {
+          "total": {
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          }
+        },
+        "tasks": {
+          "followInsta": {
+            ".validate": "newData.isBoolean()"
+          },
+          "followX": {
+            ".validate": "newData.isBoolean()"
+          },
+          "joinTelegram": {
+            ".validate": "newData.isBoolean()"
+          }
+        },
+        "wishlist": {
+          "type": {
+            ".validate": "newData.isString() || newData.val() == null"
+          },
+          "amount": {
+            ".validate": "newData.isNumber() || newData.val() == null"
+          },
+          "txHash": {
+            ".validate": "newData.isString() || newData.val() == null"
+          },
+          "confirmed": {
+            ".validate": "newData.isBoolean()"
+          },
+          "timestamp": {
+            ".validate": "newData.val() == null || newData.isNumber()"
+          }
+        },
+        "createdAt": {
+          ".validate": "newData.val() != null"
+        }
+      }
+    },
+    "tasks": {
+      ".read": true,
+      ".write": true,
+      "$taskId": {
+        ".validate": "newData.hasChildren(['name', 'description', 'platform', 'url', 'points', 'isActive'])"
+      }
+    }
+  }
+}
