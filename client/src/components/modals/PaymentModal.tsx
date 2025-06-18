@@ -54,7 +54,7 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
 
   const handleConfirmPayment = async () => {
     const trimmedTxHash = txHash.trim();
-    
+
     if (!trimmedTxHash) {
       toast({
         title: "Transaction Hash Required",
@@ -85,7 +85,7 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
     }
 
     setIsVerifying(true);
-    
+
     try {
       // Verify the transaction via backend API
       const verificationResponse = await fetch("/api/verify-transaction", {
@@ -105,9 +105,9 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
       }
 
       const verification = await verificationResponse.json();
-      
+
       console.log("Transaction verification result:", verification);
-      
+
       if (verification.valid) {
         // Create the NFT reservation via API
         const reservationResponse = await fetch(`/api/nft-reservations/${user.uid}`, {
@@ -127,18 +127,19 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
         if (!reservationResponse.ok) {
           throw new Error("Failed to create NFT reservation");
         }
-        
+
         toast({
           title: "Payment Verified!",
           description: `Your ${nftType.toUpperCase()} NFT has been reserved successfully. You'll receive it after game launch.`,
         });
-        
+
         onClose();
         setTxHash("");
       } else {
+        console.error("Transaction verification failed:", verification);
         toast({
-          title: "Transaction Failed",
-          description: verification.error || "Invalid transaction hash",
+          title: "Payment Verification Failed",
+          description: verification.error || "Transaction could not be verified",
           variant: "destructive",
         });
       }
@@ -186,7 +187,7 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
                     <span className="text-success font-bold">${price}</span>
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   {/* Payment Amount */}
                   <div>
@@ -215,7 +216,7 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
                       BmzAXDfy6rvSgj4BiZ7R8eEr83S2VpCMKVYwZ3EdgTnp
                     </div>
                   </div>
-                  
+
                   {/* Instructions */}
                   <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
                     <p className="text-sm text-warning">
@@ -225,7 +226,7 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
                       Send {solAmount ? `${solAmount.toFixed(4)} SOL` : `$${price} USD worth of SOL`} to the wallet above, then paste your transaction hash below
                     </p>
                   </div>
-                  
+
                   {/* Transaction Hash Input */}
                   <div>
                     <label className="block text-sm font-bold mb-2">Transaction Hash:</label>
@@ -238,7 +239,7 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
                       disabled={isVerifying}
                     />
                   </div>
-                  
+
                   {/* Buttons */}
                   <div className="flex space-x-4 pt-4">
                     <Button

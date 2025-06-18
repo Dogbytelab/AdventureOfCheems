@@ -124,12 +124,19 @@ export async function verifySolanaTransaction(
     const maxAmount = expectedSOLAmount + tolerance;
 
     console.log(`Transaction verification details:
+      Transaction Hash: ${txHash}
       Expected SOL: ${expectedSOLAmount.toFixed(4)}
       Actual SOL: ${actualSOL.toFixed(4)}
       Min allowed: ${minAmount.toFixed(4)}
       Max allowed: ${maxAmount.toFixed(4)}
       USD Amount: $${expectedAmountUSD}
-      SOL Price: $${solPrice.toFixed(2)}`);
+      SOL Price: $${solPrice.toFixed(2)}
+      Tolerance: ±${(tolerance * 100).toFixed(1)}%
+      Transaction age: ${ageMinutes.toFixed(1)} minutes
+      Recipient found at index: ${recipientIndex}
+      Pre balance: ${preBalance} lamports
+      Post balance: ${postBalance} lamports
+      Lamports transferred: ${actualLamports}`);
 
     if (actualSOL < minAmount || actualSOL > maxAmount) {
       return {
