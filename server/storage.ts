@@ -227,9 +227,7 @@ export class MemStorage implements IStorage {
   }
 
   async getNFTReservations(userUid: string): Promise<NFTReservation[]> {
-    const user = await this.getUserByUid(userUid);
-    if (!user) return [];
-    return Array.from(this.nftReservations.values()).filter(r => r.userId === user.id);
+    return Array.from(this.nftReservations.values()).filter(r => r.userId === userUid);
   }
 
   async getAllNFTReservations(): Promise<NFTReservation[]> {
@@ -247,10 +245,8 @@ export class MemStorage implements IStorage {
   }
 
   async getUserNFTReservationsByType(userUid: string, nftType: string): Promise<NFTReservation[]> {
-    const user = await this.getUserByUid(userUid);
-    if (!user) return [];
     return Array.from(this.nftReservations.values()).filter(r => 
-      r.userId === user.id && r.nftType.toLowerCase() === nftType.toLowerCase()
+      r.userId === userUid && r.nftType.toLowerCase() === nftType.toLowerCase()
     );
   }
 }
