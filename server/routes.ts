@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { storage } from "./storage";
+import { nftTxHashStorage } from "./nftTxHashStorage";
 
 const router = Router();
 
@@ -116,11 +117,22 @@ router.post("/user-tasks/:userUid/:taskId/claim", async (req: Request, res: Resp
   }
 });
 
-// NFT Reservations endpoints - using UID instead of ID
+// NFT Reservations endpoints - using new txHash structure
 router.get("/nft-reservations/:userUid", async (req: Request, res: Response) => {
   try {
-    const reservations = await storage.getNFTReservations(req.params.userUid);
-    res.json(reservations);
+    const reservations = await nftTxHashStorage.getUserReservations(req.params.userUid);
+    
+    // Convert to compatible format for frontend
+    const formattedReservations = reservations.map(reservation => ({
+      id: reservation.txHash,
+      userId: req.params.userUid,
+      nftType: reservation.nftType,
+      txHash: reservation.txHash,
+      timestamp: reservation.timestamp,
+      createdAt: new Date(reservation.timestamp)
+    }));
+    
+    res.json(formattedReservations);
   } catch (error) {
     console.error("Error getting NFT reservations:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -128,11 +140,8 @@ router.get("/nft-reservations/:userUid", async (req: Request, res: Response) => 
 });
 
 const createReservationSchema = z.object({
-  nftType: z.string().min(1),
-  price: z.number().positive(),
+  nftType: z.enum(["NORMIE", "SIGMA", "CHAD"]),
   txHash: z.string().min(32),
-  walletAddress: z.string().min(32),
-  solAmount: z.string(),
 });
 
 router.post("/nft-reservations/:userUid", async (req: Request, res: Response) => {
@@ -145,11 +154,11 @@ router.post("/nft-reservations/:userUid", async (req: Request, res: Response) =>
       });
     }
 
-    const { nftType, price, txHash, walletAddress, solAmount } = validation.data;
+    const { nftType, txHash } = validation.data;
     const userUid = req.params.userUid;
 
     // Check if transaction hash is already used
-    const isHashUsed = await storage.isTransactionHashUsed(txHash);
+    const isHashUsed = await nftTxHashStorage.isTransactionHashUsed(txHash);
     if (isHashUsed) {
       return res.status(409).json({ 
         message: "Transaction hash already used. Please use a unique transaction." 
@@ -163,18 +172,12 @@ router.post("/nft-reservations/:userUid", async (req: Request, res: Response) =>
       'CHAD': 669
     };
 
-    const currentCount = await storage.getNFTReservationCountByType(nftType);
-    const limit = nftLimits[nftType.toUpperCase()];
+    const currentCount = await nftTxHashStorage.getNFTReservationCountByType(nftType);
+    const limit = nftLimits[nftType];
     
-    if (!limit) {
-      return res.status(400).json({ 
-        message: "Invalid NFT type. Must be NORMIE, SIGMA, or CHAD." 
-      });
-    }
-
     if (currentCount >= limit) {
       return res.status(400).json({ 
-        message: `${nftType.toUpperCase()} NFTs are sold out. Only ${limit} available.` 
+        message: `${nftType} NFTs are sold out. Only ${limit} available.` 
       });
     }
 
@@ -185,27 +188,34 @@ router.post("/nft-reservations/:userUid", async (req: Request, res: Response) =>
       'CHAD': 1
     };
 
-    const userNFTCount = await storage.getUserNFTReservationsByType(userUid, nftType);
-    const userLimit = userPerTypeLimits[nftType.toUpperCase()];
+    const userNFTCount = await nftTxHashStorage.getUserNFTReservationsByType(userUid, nftType);
+    const userLimit = userPerTypeLimits[nftType];
     
     if (userNFTCount.length >= userLimit) {
       return res.status(400).json({ 
-        message: `You have reached your limit of ${userLimit} ${nftType.toUpperCase()} NFT(s). You currently have ${userNFTCount.length} reserved.` 
+        message: `You have reached your limit of ${userLimit} ${nftType} NFT(s). You currently have ${userNFTCount.length} reserved.` 
       });
     }
 
-    const reservation = await storage.createNFTReservation({
+    // Reserve the NFT using the new txHash storage
+    await nftTxHashStorage.reserveNFT(txHash, userUid, nftType);
+
+    // Return compatible response
+    const reservation = {
+      id: txHash,
       userId: userUid,
-      nftType,
-      price,
-      txHash,
-      walletAddress,
-      solAmount,
-    });
+      nftType: nftType,
+      txHash: txHash,
+      timestamp: Date.now(),
+      createdAt: new Date()
+    };
 
     res.status(201).json(reservation);
   } catch (error) {
     console.error("Error creating NFT reservation:", error);
+    if (error instanceof Error && error.message === "Transaction already used") {
+      return res.status(409).json({ message: error.message });
+    }
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -213,14 +223,14 @@ router.post("/nft-reservations/:userUid", async (req: Request, res: Response) =>
 // NFT supply endpoint
 router.get("/nft-supply", async (req: Request, res: Response) => {
   try {
-    const nftTypes = ['normie', 'sigma', 'chad'];
-    const nftLimits = { normie: 25000, sigma: 5000, chad: 669 };
+    const nftTypes = ['NORMIE', 'SIGMA', 'CHAD'];
+    const nftLimits = { NORMIE: 25000, SIGMA: 5000, CHAD: 669 };
     const supply: Record<string, { sold: number; remaining: number }> = {};
 
     for (const nftType of nftTypes) {
-      const sold = await storage.getNFTReservationCountByType(nftType);
+      const sold = await nftTxHashStorage.getNFTReservationCountByType(nftType);
       const limit = nftLimits[nftType as keyof typeof nftLimits];
-      supply[nftType] = {
+      supply[nftType.toLowerCase()] = {
         sold,
         remaining: Math.max(0, limit - sold)
       };
