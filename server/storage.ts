@@ -251,6 +251,6 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Use NestedFirebaseStorage as the default storage implementation
-import { nestedFirebaseStorage } from "./nestedFirebaseStorage";
-export const storage: IStorage = nestedFirebaseStorage;
+// Use HybridStorage to combine Firebase read capabilities with memory storage for writes
+import { hybridStorage } from "./hybridStorage";
+export const storage: IStorage = hybridStorage;
