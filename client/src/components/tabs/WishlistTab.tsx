@@ -148,7 +148,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-text-secondary">Per User Limit:</span>
                     <span className="font-bold">
-                      {nft.limit === 1 ? "1" : "Unlimited"}
+                      {nft.limit === 1 ? "1" : "25"}
                     </span>
                   </div>
 

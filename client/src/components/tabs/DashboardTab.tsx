@@ -227,9 +227,7 @@ export default function DashboardTab() {
         >
           <Card className="glass-effect border-accent/30">
             <CardContent className="pt-6">
-              <h3 className="text-xl font-retro text-accent mb-4">
-                NFT RESERVATIONS
-              </h3>
+              <h3 className="text-xl font-retro text-accent mb-4">NFT</h3>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-text-secondary">

@@ -1,0 +1,89 @@
+Refactor the current NFT reservation data handling system.
+
+Objective:
+No memory-based or localStorage-based wishlist/reservation.
+
+Create a global structure in Firebase Realtime Database to store each reservation using the transaction hash as the key.
+
+Under each txHash, save:
+
+userId
+
+nftType (e.g., NORMIE, SIGMA, CHAD)
+
+timestamp
+
+Final Structure in Firebase:
+sql
+Copy
+Edit
+nft_txHashes/
+   <txHash>/
+      userId: "..."
+      nftType: "NORMIE" | "SIGMA" | "CHAD"
+      timestamp: <UNIX time>
+Required Features:
+On NFT reservation:
+
+Check if this txHash already exists in nft_txHashes.
+
+If exists → reject the reservation (fraud or duplicate).
+
+If not exists → allow and save:
+{
+  "userId": "uid_xyz",
+  "nftType": "CHAD",
+  "timestamp": 1718700123
+}
+All reservation checks & storage should happen directly in Firebase Realtime Database.
+
+Do not use any localStorage, sessionStorage, or in-memory arrays/lists.
+
+ Firebase Rules (Add this under root-level):
+json
+Copy
+Edit
+"nft_txHashes": {
+  ".read": true,
+  ".write": true,
+  "$txHash": {
+    ".validate": "newData.hasChildren(['userId', 'nftType', 'timestamp'])",
+    "userId": {
+      ".validate": "newData.isString()"
+    },
+    "nftType": {
+      ".validate": "newData.isString() && (newData.val() == 'NORMIE' || newData.val() == 'SIGMA' || newData.val() == 'CHAD')"
+    },
+    "timestamp": {
+      ".validate": "newData.isNumber()"
+    }
+  }
+}
+🔄 Example Logic (JS Firebase SDK):
+import { getDatabase, ref, get, set } from "firebase/database";
+
+const db = getDatabase();
+
+async function reserveNFT(txHash, userId, nftType) {
+  const txRef = ref(db, `nft_txHashes/${txHash}`);
+  const snapshot = await get(txRef);
+
+  if (snapshot.exists()) {
+    throw new Error("Transaction already used");
+  } else {
+    await set(txRef, {
+      userId: userId,
+      nftType: nftType,
+      timestamp: Date.now()
+    });
+  }
+}
+✅ Summary:
+No memory storage.
+
+Save using txHash as key in /nft_txHashes.
+
+Store userId, nftType, and timestamp.
+
+Validate for duplicates before insert.
+
