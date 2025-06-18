@@ -158,7 +158,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                       className="bg-gradient-to-r from-accent to-success h-2 rounded-full transition-all duration-300"
                       style={{
                         width: `${Math.min(
-                          ((nftSupply[nft.type]?.sold || 0) / nft.totalSupply) *
+                          ((nftSupply[nft.type.toLowerCase()]?.sold || 0) / nft.totalSupply) *
                             100,
                           100,
                         )}%`,
@@ -171,11 +171,11 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                   onClick={() => handleReserveNFT(nft.type, nft.price)}
                   disabled={
                     !firebaseUser ||
-                    (nftSupply[nft.type]?.remaining || nft.totalSupply) <= 0
+                    (nftSupply[nft.type.toLowerCase()]?.remaining || nft.totalSupply) <= 0
                   }
                   className={`${nft.buttonColor} text-white font-bold py-3 retro-button w-full`}
                 >
-                  {(nftSupply[nft.type]?.remaining || nft.totalSupply) <= 0
+                  {(nftSupply[nft.type.toLowerCase()]?.remaining || nft.totalSupply) <= 0
                     ? "SOLD OUT"
                     : "Reserve Now"}
                 </Button>
