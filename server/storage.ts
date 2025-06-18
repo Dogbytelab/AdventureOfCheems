@@ -253,4 +253,4 @@ export class MemStorage implements IStorage {
 
 // Use NestedFirebaseStorage as the default storage implementation
 import { nestedFirebaseStorage } from "./nestedFirebaseStorage";
-export const storage: IStorage = new MemStorage();
+export const storage: IStorage = nestedFirebaseStorage;
