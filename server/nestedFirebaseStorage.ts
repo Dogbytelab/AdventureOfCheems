@@ -79,6 +79,12 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
           confirmed: false,
           timestamp: null
         },
+        NFT: {
+          NORMIE: 0,
+          SIGMA: 0,
+          CHAD: 0,
+          total: 0
+        },
         createdAt: serverTimestamp()
       };
 
@@ -285,13 +291,13 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
             'aocPoints/total': currentPoints + 100 // +100 AOC points per invite
           };
 
-          // If user reaches milestone and doesn't already have a wishlist, give free Normie
-          if (shouldRewardNormie && !userData.wishlist?.type) {
-            updateData['wishlist/type'] = 'normie';
-            updateData['wishlist/amount'] = 1;
-            updateData['wishlist/txHash'] = `AUTO_REWARD_${newInviteCount}_INVITES`;
-            updateData['wishlist/confirmed'] = true;
-            updateData['wishlist/timestamp'] = serverTimestamp();
+          // If user reaches milestone, give free Normie
+          if (shouldRewardNormie) {
+            const currentNormieCount = userData.NFT?.NORMIE || 0;
+            const currentTotal = userData.NFT?.total || 0;
+            
+            updateData['NFT/NORMIE'] = currentNormieCount + 1;
+            updateData['NFT/total'] = currentTotal + 1;
             
             console.log(`Auto-rewarded 1 Normie NFT to user ${uid} for reaching ${newInviteCount} invites`);
           }
@@ -399,10 +405,10 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
         timestamp: serverTimestamp()
       };
 
-      // Get current user wishlist data
-      const userWishlistRef = ref(rtdb, `users/${reservation.userId}/wishlist`);
-      const currentWishlistSnapshot = await get(userWishlistRef);
-      const currentWishlist = currentWishlistSnapshot.exists() ? currentWishlistSnapshot.val() : {
+      // Get current user NFT data (using NFT structure)
+      const userNFTRef = ref(rtdb, `users/${reservation.userId}/NFT`);
+      const currentNFTSnapshot = await get(userNFTRef);
+      const currentNFT = currentNFTSnapshot.exists() ? currentNFTSnapshot.val() : {
         NORMIE: 0,
         SIGMA: 0,
         CHAD: 0,
@@ -411,15 +417,15 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
       
       // Increment the count for the specific NFT type
       const nftTypeUpper = reservation.nftType.toUpperCase();
-      if (currentWishlist[nftTypeUpper] !== undefined) {
-        currentWishlist[nftTypeUpper]++;
-        currentWishlist.total++;
+      if (currentNFT[nftTypeUpper] !== undefined) {
+        currentNFT[nftTypeUpper]++;
+        currentNFT.total++;
       }
 
       // Execute all operations atomically
       const updates = {
         [`transactions/${reservation.txHash}`]: transactionData,
-        [`users/${reservation.userId}/wishlist`]: currentWishlist,
+        [`users/${reservation.userId}/NFT`]: currentNFT,
         [`nft_reservations/${reservationId}`]: {
           userId: reservation.userId,
           nftType: reservation.nftType,

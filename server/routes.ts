@@ -243,21 +243,22 @@ router.get("/nft-supply", async (req: Request, res: Response) => {
   }
 });
 
-// Get user wishlist counts
-router.get("/users/:userId/wishlist", async (req: Request, res: Response) => {
+// Get user wishlist counts - unified endpoint
+router.get("/wishlist/:userUid", async (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
+    const { userUid } = req.params;
     
-    if (!userId) {
+    if (!userUid) {
       return res.status(400).json({ message: "User ID is required" });
     }
 
-    // Get wishlist data from Firebase
+    // Get NFT data from Firebase
     const { ref, get } = await import("firebase/database");
     const { rtdb } = await import("./firebase");
     
-    const wishlistRef = ref(rtdb, `users/${userId}/wishlist`);
-    const snapshot = await get(wishlistRef);
+    // Try the new NFT structure first
+    const nftRef = ref(rtdb, `users/${userUid}/NFT`);
+    const nftSnapshot = await get(nftRef);
     
     let wishlistCounts = {
       NORMIE: 0,
@@ -266,39 +267,54 @@ router.get("/users/:userId/wishlist", async (req: Request, res: Response) => {
       total: 0
     };
     
-    if (snapshot.exists()) {
-      const data = snapshot.val();
+    if (nftSnapshot.exists()) {
+      const nftData = nftSnapshot.val();
+      wishlistCounts = {
+        NORMIE: nftData.NORMIE || 0,
+        SIGMA: nftData.SIGMA || 0,
+        CHAD: nftData.CHAD || 0,
+        total: nftData.total || ((nftData.NORMIE || 0) + (nftData.SIGMA || 0) + (nftData.CHAD || 0))
+      };
+    } else {
+      // Fallback to wishlist structure
+      const wishlistRef = ref(rtdb, `users/${userUid}/wishlist`);
+      const wishlistSnapshot = await get(wishlistRef);
       
-      // Handle new format
-      if (typeof data === 'object' && (data.NORMIE !== undefined || data.SIGMA !== undefined || data.CHAD !== undefined)) {
-        wishlistCounts = {
-          NORMIE: data.NORMIE || 0,
-          SIGMA: data.SIGMA || 0,
-          CHAD: data.CHAD || 0,
-          total: data.total || ((data.NORMIE || 0) + (data.SIGMA || 0) + (data.CHAD || 0))
-        };
-      }
-      // Handle legacy format - convert old single reservation to count
-      else if (data.type) {
-        const nftType = data.type.toUpperCase();
-        if (wishlistCounts[nftType] !== undefined) {
-          wishlistCounts[nftType] = 1;
-          wishlistCounts.total = 1;
+      if (wishlistSnapshot.exists()) {
+        const data = wishlistSnapshot.val();
+        
+        // Handle new format
+        if (typeof data === 'object' && (data.NORMIE !== undefined || data.SIGMA !== undefined || data.CHAD !== undefined)) {
+          wishlistCounts = {
+            NORMIE: data.NORMIE || 0,
+            SIGMA: data.SIGMA || 0,
+            CHAD: data.CHAD || 0,
+            total: data.total || ((data.NORMIE || 0) + (data.SIGMA || 0) + (data.CHAD || 0))
+          };
         }
+        // Handle legacy format - convert old single reservation to count
+        else if (data.type) {
+          const nftType = data.type.toUpperCase();
+          if (wishlistCounts[nftType] !== undefined) {
+            wishlistCounts[nftType] = 1;
+            wishlistCounts.total = 1;
+          }
+        }
+      }
+      
+      // Also get counts from nftTxHashStorage as fallback
+      try {
+        const txHashCounts = await nftTxHashStorage.getUserWishlistCounts(userUid);
+        // Use the higher count from either source
+        wishlistCounts.NORMIE = Math.max(wishlistCounts.NORMIE, txHashCounts.NORMIE);
+        wishlistCounts.SIGMA = Math.max(wishlistCounts.SIGMA, txHashCounts.SIGMA);
+        wishlistCounts.CHAD = Math.max(wishlistCounts.CHAD, txHashCounts.CHAD);
+        wishlistCounts.total = wishlistCounts.NORMIE + wishlistCounts.SIGMA + wishlistCounts.CHAD;
+      } catch (txError) {
+        console.log("TxHash storage fallback failed:", txError);
       }
     }
     
-    res.json(wishlistCounts);
-  } catch (error) {
-    console.error("Error getting wishlist counts:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-// Get user wishlist counts
-router.get("/wishlist/:userUid", async (req: Request, res: Response) => {
-  try {
-    const wishlistCounts = await nftTxHashStorage.getUserWishlistCounts(req.params.userUid);
     res.json(wishlistCounts);
   } catch (error) {
     console.error("Error getting wishlist counts:", error);
