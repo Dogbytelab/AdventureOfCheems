@@ -163,14 +163,6 @@ export default function DashboardTab() {
     },
   ];
 
-  // Use wishlist counts from Firebase
-  const nftCounts = nftOwnership || {
-    NORMIE: 0,
-    SIGMA: 0,
-    CHAD: 0,
-    total: 0
-  };
-
   return (
     <div className="max-w-4xl mx-auto">
       <motion.h2
@@ -265,7 +257,7 @@ export default function DashboardTab() {
                     Normie ($0.1):
                   </span>
                   <span className="text-lg font-bold text-success">
-                    {nftCounts.NORMIE || 0}
+                    {nftOwnership.NORMIE || 0}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -273,7 +265,7 @@ export default function DashboardTab() {
                     Sigma ($25):
                   </span>
                   <span className="text-lg font-bold text-success">
-                    {nftCounts.SIGMA || 0}
+                    {nftOwnership.SIGMA || 0}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -281,7 +273,7 @@ export default function DashboardTab() {
                     Chad ($269):
                   </span>
                   <span className="text-lg font-bold text-success">
-                    {nftCounts.CHAD || 0}
+                    {nftOwnership.CHAD || 0}
                   </span>
                 </div>
                 <div className="border-t border-gray-600 pt-2 mt-3">
@@ -290,7 +282,7 @@ export default function DashboardTab() {
                       Total NFTs:
                     </span>
                     <span className="text-xl font-bold text-accent">
-                      {nftCounts.total || (nftCounts.NORMIE || 0) + (nftCounts.SIGMA || 0) + (nftCounts.CHAD || 0)}
+                      {nftOwnership.total || (nftOwnership.NORMIE || 0) + (nftOwnership.SIGMA || 0) + (nftOwnership.CHAD || 0)}
                     </span>
                   </div>
                 </div>
