@@ -39,7 +39,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
 
   const nftTypes = [
     {
-      type: "normie",
+      type: "NORMIE",
       name: "🤡 NORMIE",
       price: 0.1,
       limit: 25,
@@ -50,7 +50,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       rare: false,
     },
     {
-      type: "sigma",
+      type: "SIGMA",
       name: "🗿 SIGMA",
       price: 25,
       limit: 1,
@@ -61,7 +61,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       rare: true,
     },
     {
-      type: "chad",
+      type: "CHAD",
       name: "💎 CHAD",
       price: 269,
       limit: 1,
@@ -136,13 +136,13 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-text-secondary">Sold:</span>
                     <span className="font-bold text-accent">
-                      {nftSupply[nft.type]?.sold || 0}
+                      {nftSupply[nft.type.toLowerCase()]?.sold || 0}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-text-secondary">Remaining:</span>
                     <span className="font-bold text-success">
-                      {nftSupply[nft.type]?.remaining || nft.totalSupply}
+                      {nftSupply[nft.type.toLowerCase()]?.remaining || nft.totalSupply}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">

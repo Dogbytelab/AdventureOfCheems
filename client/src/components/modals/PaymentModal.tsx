@@ -15,7 +15,6 @@ interface PaymentModalProps {
   onClose: () => void;
   nftType: string;
   price: number;
-  ga;
 }
 
 export default function PaymentModal({
@@ -123,7 +122,7 @@ export default function PaymentModal({
       console.log("Transaction verification result:", verification);
 
       if (verification.valid) {
-        // Create the NFT reservation via API
+        // Create the NFT reservation via API (simplified with new txHash system)
         const reservationResponse = await fetch(
           `/api/nft-reservations/${userUid}`,
           {
@@ -132,11 +131,8 @@ export default function PaymentModal({
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              nftType,
-              price,
+              nftType: nftType.toUpperCase(),
               txHash: trimmedTxHash,
-              walletAddress: verification.walletAddress || "unknown",
-              solAmount: solAmount ? solAmount.toFixed(4) : "0.0000",
             }),
           },
         );

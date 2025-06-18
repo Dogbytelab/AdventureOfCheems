@@ -34,12 +34,17 @@ export function useCreateNFTReservation() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (reservation: { userId: string; nftType: string; price: number; txHash: string }) => {
-      const response = await apiRequest("POST", "/api/nft-reservations", reservation);
+    mutationFn: async (reservation: { userId: string; nftType: string; txHash: string }) => {
+      const response = await apiRequest("POST", `/api/nft-reservations/${reservation.userId}`, {
+        nftType: reservation.nftType,
+        txHash: reservation.txHash
+      });
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/nft-reservations"] });
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/nft-reservations", variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nft-supply"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", variables.userId] });
     },
   });
 }

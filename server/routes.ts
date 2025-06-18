@@ -123,7 +123,7 @@ router.get("/nft-reservations/:userUid", async (req: Request, res: Response) => 
     const reservations = await nftTxHashStorage.getUserReservations(req.params.userUid);
     
     // Convert to compatible format for frontend
-    const formattedReservations = reservations.map(reservation => ({
+    const formattedReservations = reservations.map((reservation: any) => ({
       id: reservation.txHash,
       userId: req.params.userUid,
       nftType: reservation.nftType,
