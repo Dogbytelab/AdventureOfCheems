@@ -41,14 +41,21 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
           setSolAmount(calculateSOLAmount(price, currentPrice));
         } catch (error) {
           console.error("Failed to fetch SOL price:", error);
+          // Set fallback values to prevent UI issues
+          setSolPrice(100);
+          setSolAmount(calculateSOLAmount(price, 100));
           toast({
             title: "Price Fetch Error",
-            description: "Failed to get current SOL price. Please try again.",
+            description: "Using fallback SOL price. Please refresh if needed.",
             variant: "destructive",
           });
         }
       };
-      fetchSOLPrice();
+      
+      // Wrap in try-catch to prevent unhandled rejections
+      fetchSOLPrice().catch((error) => {
+        console.error("Unhandled error in fetchSOLPrice:", error);
+      });
     }
   }, [isOpen, price, toast]);
 
