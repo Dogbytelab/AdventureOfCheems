@@ -243,6 +243,58 @@ router.get("/nft-supply", async (req: Request, res: Response) => {
   }
 });
 
+// Get user wishlist counts
+router.get("/users/:userId/wishlist", async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    // Get wishlist data from Firebase
+    const { ref, get } = await import("firebase/database");
+    const { rtdb } = await import("./firebase");
+    
+    const wishlistRef = ref(rtdb, `users/${userId}/wishlist`);
+    const snapshot = await get(wishlistRef);
+    
+    let wishlistCounts = {
+      NORMIE: 0,
+      SIGMA: 0,
+      CHAD: 0,
+      total: 0
+    };
+    
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      
+      // Handle new format
+      if (typeof data === 'object' && (data.NORMIE !== undefined || data.SIGMA !== undefined || data.CHAD !== undefined)) {
+        wishlistCounts = {
+          NORMIE: data.NORMIE || 0,
+          SIGMA: data.SIGMA || 0,
+          CHAD: data.CHAD || 0,
+          total: data.total || ((data.NORMIE || 0) + (data.SIGMA || 0) + (data.CHAD || 0))
+        };
+      }
+      // Handle legacy format - convert old single reservation to count
+      else if (data.type) {
+        const nftType = data.type.toUpperCase();
+        if (wishlistCounts[nftType] !== undefined) {
+          wishlistCounts[nftType] = 1;
+          wishlistCounts.total = 1;
+        }
+      }
+    }
+    
+    res.json(wishlistCounts);
+  } catch (error) {
+    console.error("Error getting wishlist counts:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // Add verification endpoint
 router.post("/verify-transaction", async (req: Request, res: Response) => {
   try {

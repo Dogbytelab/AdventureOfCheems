@@ -400,28 +400,26 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
       };
 
       // Get current user wishlist data
-      const userWishlistRef = ref(rtdb, `users/${reservation.userId}/wishlist/${reservation.nftType}`);
+      const userWishlistRef = ref(rtdb, `users/${reservation.userId}/wishlist`);
       const currentWishlistSnapshot = await get(userWishlistRef);
-      const currentReservations = currentWishlistSnapshot.exists() ? currentWishlistSnapshot.val() : [];
-      
-      // Ensure it's an array
-      const reservationsArray = Array.isArray(currentReservations) ? currentReservations : [];
-      
-      // Create new reservation entry
-      const newReservation = {
-        txHash: reservation.txHash,
-        amount: reservation.price,
-        confirmed: true,
-        timestamp: serverTimestamp()
+      const currentWishlist = currentWishlistSnapshot.exists() ? currentWishlistSnapshot.val() : {
+        NORMIE: 0,
+        SIGMA: 0,
+        CHAD: 0,
+        total: 0
       };
-
-      // Add to reservations array
-      reservationsArray.push(newReservation);
+      
+      // Increment the count for the specific NFT type
+      const nftTypeUpper = reservation.nftType.toUpperCase();
+      if (currentWishlist[nftTypeUpper] !== undefined) {
+        currentWishlist[nftTypeUpper]++;
+        currentWishlist.total++;
+      }
 
       // Execute all operations atomically
       const updates = {
         [`transactions/${reservation.txHash}`]: transactionData,
-        [`users/${reservation.userId}/wishlist/${reservation.nftType}`]: reservationsArray,
+        [`users/${reservation.userId}/wishlist`]: currentWishlist,
         [`nft_reservations/${reservationId}`]: {
           userId: reservation.userId,
           nftType: reservation.nftType,
@@ -490,15 +488,16 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
       
       if (wishlistSnapshot.exists()) {
         const wishlist = wishlistSnapshot.val();
+        
+        // Handle old format with type and txHash
         if (wishlist.type && wishlist.txHash) {
-          // Check if this wishlist reservation is not already in the new structure
           const existingReservation = userReservations.find(r => r.txHash === wishlist.txHash);
           if (!existingReservation) {
             userReservations.push({
               id: `${userId}_wishlist`,
               userId: userId,
               nftType: wishlist.type,
-              price: 1, // Always show 1 NFT for wishlist reservations
+              price: 1,
               txHash: wishlist.txHash,
               walletAddress: '',
               solAmount: '0',
@@ -507,6 +506,30 @@ export class NestedFirebaseStorage implements IFirebaseStorage {
               createdAt: wishlist.timestamp ? new Date(wishlist.timestamp) : new Date()
             });
           }
+        }
+        
+        // Handle new format with counts per NFT type
+        if (typeof wishlist === 'object' && (wishlist.NORMIE || wishlist.SIGMA || wishlist.CHAD)) {
+          // For display purposes, we'll create virtual reservations based on counts
+          // This maintains compatibility with the existing NFT reservation display system
+          const nftTypes = ['NORMIE', 'SIGMA', 'CHAD'];
+          nftTypes.forEach(nftType => {
+            const count = wishlist[nftType] || 0;
+            for (let i = 0; i < count; i++) {
+              userReservations.push({
+                id: `${userId}_${nftType}_${i}`,
+                userId: userId,
+                nftType: nftType,
+                price: 1,
+                txHash: `virtual_${nftType}_${i}`,
+                walletAddress: '',
+                solAmount: '0',
+                verified: true,
+                verificationAttempts: 1,
+                createdAt: new Date()
+              });
+            }
+          });
         }
       }
       

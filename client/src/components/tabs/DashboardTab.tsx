@@ -50,6 +50,19 @@ export default function DashboardTab() {
     },
   });
 
+  // Get wishlist counts from user data
+  const { data: wishlistCounts } = useQuery({
+    queryKey: ["/api/wishlist-counts", user?.uid],
+    enabled: !!user?.uid,
+    queryFn: async () => {
+      const response = await apiRequest(
+        "GET",
+        `/api/users/${user?.uid}/wishlist`,
+      );
+      return response.json();
+    },
+  });
+
   const handleCopyReferralCode = async () => {
     if (user?.referralCode) {
       try {
@@ -131,14 +144,13 @@ export default function DashboardTab() {
     },
   ];
 
-  // Calculate NFT reservations count by type
-  const nftCounts = nftReservations.reduce(
-    (acc, reservation) => {
-      acc[reservation.nftType] = (acc[reservation.nftType] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
+  // Use wishlist counts if available, otherwise fall back to reservation counting
+  const nftCounts = wishlistCounts || {
+    NORMIE: nftReservations.filter(r => r.nftType === 'NORMIE').length,
+    SIGMA: nftReservations.filter(r => r.nftType === 'SIGMA').length,
+    CHAD: nftReservations.filter(r => r.nftType === 'CHAD').length,
+    total: nftReservations.length
+  };
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -234,7 +246,7 @@ export default function DashboardTab() {
                     Normie ($0.1):
                   </span>
                   <span className="text-lg font-bold text-success">
-                    {nftCounts.normie || 0}
+                    {nftCounts.NORMIE || 0}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -242,7 +254,7 @@ export default function DashboardTab() {
                     Sigma ($25):
                   </span>
                   <span className="text-lg font-bold text-success">
-                    {nftCounts.sigma || 0}
+                    {nftCounts.SIGMA || 0}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -250,7 +262,7 @@ export default function DashboardTab() {
                     Chad ($269):
                   </span>
                   <span className="text-lg font-bold text-success">
-                    {nftCounts.chad || 0}
+                    {nftCounts.CHAD || 0}
                   </span>
                 </div>
                 <div className="border-t border-gray-600 pt-2 mt-3">
@@ -259,7 +271,7 @@ export default function DashboardTab() {
                       Total NFTs:
                     </span>
                     <span className="text-xl font-bold text-accent">
-                      {nftReservations.length}
+                      {nftCounts.total || (nftCounts.NORMIE || 0) + (nftCounts.SIGMA || 0) + (nftCounts.CHAD || 0)}
                     </span>
                   </div>
                 </div>

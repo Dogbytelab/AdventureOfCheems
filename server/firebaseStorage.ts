@@ -299,14 +299,37 @@ export class FirebaseStorage implements IFirebaseStorage {
     txHash: string;
   }): Promise<NFTReservation> {
     try {
-      // Update wishlist in nested user structure
-      await update(ref(rtdb, `users/${reservation.userId}/wishlist`), {
-        type: reservation.nftType,
-        amount: reservation.price,
-        txHash: reservation.txHash,
-        confirmed: false,
-        timestamp: Date.now()
-      });
+      // Get current wishlist data
+      const wishlistRef = ref(rtdb, `users/${reservation.userId}/wishlist`);
+      const snapshot = await get(wishlistRef);
+      
+      let wishlist = snapshot.exists() ? snapshot.val() : {
+        NORMIE: 0,
+        SIGMA: 0,
+        CHAD: 0,
+        total: 0
+      };
+      
+      // If it's legacy format, convert it
+      if (wishlist.type && wishlist.txHash) {
+        const oldType = wishlist.type.toUpperCase();
+        wishlist = {
+          NORMIE: oldType === 'NORMIE' ? 1 : 0,
+          SIGMA: oldType === 'SIGMA' ? 1 : 0,
+          CHAD: oldType === 'CHAD' ? 1 : 0,
+          total: 1
+        };
+      }
+      
+      // Increment count for the new reservation
+      const nftTypeUpper = reservation.nftType.toUpperCase();
+      if (wishlist[nftTypeUpper] !== undefined) {
+        wishlist[nftTypeUpper]++;
+        wishlist.total++;
+      }
+      
+      // Update wishlist with new counting structure
+      await update(wishlistRef, wishlist);
       
       // Return NFTReservation for compatibility
       return {
