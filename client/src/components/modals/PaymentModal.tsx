@@ -15,9 +15,15 @@ interface PaymentModalProps {
   onClose: () => void;
   nftType: string;
   price: number;
+  ga;
 }
 
-export default function PaymentModal({ isOpen, onClose, nftType, price }: PaymentModalProps) {
+export default function PaymentModal({
+  isOpen,
+  onClose,
+  nftType,
+  price,
+}: PaymentModalProps) {
   const [txHash, setTxHash] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [solPrice, setSolPrice] = useState<number | null>(null);
@@ -73,7 +79,8 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
     if (!base58Regex.test(trimmedTxHash)) {
       toast({
         title: "Invalid Transaction Hash",
-        description: "Please enter a valid Solana transaction hash (32-88 Base58 characters)",
+        description:
+          "Please enter a valid Solana transaction hash (32-88 Base58 characters)",
         variant: "destructive",
       });
       return;
@@ -117,27 +124,35 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
 
       if (verification.valid) {
         // Create the NFT reservation via API
-        const reservationResponse = await fetch(`/api/nft-reservations/${userUid}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        const reservationResponse = await fetch(
+          `/api/nft-reservations/${userUid}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              nftType,
+              price,
+              txHash: trimmedTxHash,
+              walletAddress: verification.walletAddress || "unknown",
+              solAmount: solAmount ? solAmount.toFixed(4) : "0.0000",
+            }),
           },
-          body: JSON.stringify({
-            nftType,
-            price,
-            txHash: trimmedTxHash,
-            walletAddress: verification.walletAddress || "unknown",
-            solAmount: solAmount ? solAmount.toFixed(4) : "0.0000",
-          }),
-        });
+        );
 
         if (!reservationResponse.ok) {
-          throw new Error("Failed to create NFT reservation");
+          const errorData = await reservationResponse.json().catch(() => ({ message: "Unknown error" }));
+          console.error("Reservation creation failed:", errorData);
+          throw new Error(errorData.message || "Failed to create NFT reservation");
         }
+
+        const reservationData = await reservationResponse.json();
+        console.log("NFT reservation created successfully:", reservationData);
 
         toast({
           title: "Payment Verified!",
-          description: `Your ${nftType.toUpperCase()} NFT has been reserved successfully. You'll receive it after game launch.`,
+          description: `Your ${nftType.toUpperCase()} NFT has been reserved successfully.`,
         });
 
         onClose();
@@ -146,7 +161,8 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
         console.error("Transaction verification failed:", verification);
         toast({
           title: "Payment Verification Failed",
-          description: verification.error || "Transaction could not be verified",
+          description:
+            verification.error || "Transaction could not be verified",
           variant: "destructive",
         });
       }
@@ -154,7 +170,10 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
       console.error("Payment verification error:", error);
       toast({
         title: "Payment Failed",
-        description: error instanceof Error ? error.message : "Failed to verify transaction. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to verify transaction. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -188,7 +207,9 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
             <Card className="glass-effect max-w-md w-full mx-4 border-accent/30">
               <CardContent className="pt-6">
                 <div className="text-center mb-6">
-                  <h3 className="text-2xl font-retro text-accent mb-2">Reserve NFT</h3>
+                  <h3 className="text-2xl font-retro text-accent mb-2">
+                    Reserve NFT
+                  </h3>
                   <div className="text-lg">
                     <span className="font-bold">{nftType.toUpperCase()}</span> -{" "}
                     <span className="text-success font-bold">${price}</span>
@@ -198,7 +219,9 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
                 <div className="space-y-4">
                   {/* Payment Amount */}
                   <div>
-                    <label className="block text-sm font-bold mb-2">Payment Amount:</label>
+                    <label className="block text-sm font-bold mb-2">
+                      Payment Amount:
+                    </label>
                     <div className="bg-secondary/50 border border-accent/30 rounded-lg p-3">
                       <div className="text-lg font-bold text-accent">
                         ${price} USD
@@ -218,7 +241,9 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
 
                   {/* Payment Wallet */}
                   <div>
-                    <label className="block text-sm font-bold mb-2">Send Payment To:</label>
+                    <label className="block text-sm font-bold mb-2">
+                      Send Payment To:
+                    </label>
                     <div className="bg-secondary/50 border border-gray-600 rounded-lg p-3 font-mono text-sm break-all">
                       BmzAXDfy6rvSgj4BiZ7R8eEr83S2VpCMKVYwZ3EdgTnp
                     </div>
@@ -227,16 +252,33 @@ export default function PaymentModal({ isOpen, onClose, nftType, price }: Paymen
                   {/* Instructions */}
                   <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
                     <p className="text-sm text-warning">
-                      <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      <svg
+                        className="w-4 h-4 inline mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                        />
                       </svg>
-                      Send {solAmount ? `${solAmount.toFixed(4)} SOL` : `$${price} USD worth of SOL`} to the wallet above, then paste your transaction hash below
+                      Send{" "}
+                      {solAmount
+                        ? `${solAmount.toFixed(4)} SOL`
+                        : `$${price} USD worth of SOL`}{" "}
+                      to the wallet above, then paste your transaction hash
+                      below
                     </p>
                   </div>
 
                   {/* Transaction Hash Input */}
                   <div>
-                    <label className="block text-sm font-bold mb-2">Transaction Hash:</label>
+                    <label className="block text-sm font-bold mb-2">
+                      Transaction Hash:
+                    </label>
                     <Input
                       type="text"
                       placeholder="Paste your transaction hash..."

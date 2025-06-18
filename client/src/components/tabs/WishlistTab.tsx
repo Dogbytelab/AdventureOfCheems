@@ -44,7 +44,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       price: 0.1,
       limit: 25,
       totalSupply: 25000,
-      description: "Common NFT - Multiple reservations allowed",
+      description: "Common NFT - Up to 25 per user",
       buttonColor:
         "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700",
       rare: false,
@@ -53,9 +53,9 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       type: "sigma",
       name: "🗿 SIGMA",
       price: 25,
-      limit: 5,
+      limit: 1,
       totalSupply: 5000,
-      description: "Rare NFT - Multiple reservations allowed",
+      description: "Rare NFT - Limited to 1 per user",
       buttonColor:
         "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
       rare: true,
@@ -66,7 +66,7 @@ export default function WishlistTab({ onReserveNFT }: WishlistTabProps) {
       price: 269,
       limit: 1,
       totalSupply: 669,
-      description: "Ultra Rare NFT - Multiple reservations allowed",
+      description: "Ultra Rare NFT - Limited to 1 per user",
       buttonColor:
         "bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700",
       rare: true,

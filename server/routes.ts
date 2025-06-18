@@ -178,7 +178,21 @@ router.post("/nft-reservations/:userUid", async (req: Request, res: Response) =>
       });
     }
 
-    // Multiple reservations of the same type are now allowed per user
+    // Check per-user limits
+    const userPerTypeLimits: { [key: string]: number } = {
+      'NORMIE': 25,
+      'SIGMA': 1,
+      'CHAD': 1
+    };
+
+    const userNFTCount = await storage.getUserNFTReservationsByType(userUid, nftType);
+    const userLimit = userPerTypeLimits[nftType.toUpperCase()];
+    
+    if (userNFTCount.length >= userLimit) {
+      return res.status(400).json({ 
+        message: `You have reached your limit of ${userLimit} ${nftType.toUpperCase()} NFT(s). You currently have ${userNFTCount.length} reserved.` 
+      });
+    }
 
     const reservation = await storage.createNFTReservation({
       userId: userUid,
