@@ -233,7 +233,7 @@ export default function DashboardTab() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-text-secondary">
-                    Normie ($0.05):
+                    Normie ($0.01):
                   </span>
                   <span className="text-lg font-bold text-success">
                     {nftCounts.normie || 0}
