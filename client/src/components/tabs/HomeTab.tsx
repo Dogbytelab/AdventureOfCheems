@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 export default function HomeTab() {
   const handleDownloadGame = () => {
     // Open the game download link in a new tab - replace with actual URL when ready
-    const gameDownloadUrl = "https://dogbytelabaoc.netlify.app/static/apk/AdventureOfCheems.apk"; // Placeholder URL
+    const gameDownloadUrl =
+      "https://dogbytelabaoc.netlify.app/static/apk/AdventureOfCheems.apk"; // Placeholder URL
     window.open(gameDownloadUrl, "_blank");
   };
 
