@@ -105,7 +105,7 @@ export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
                   placeholder="Enter your invite code..."
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value)}
-                  className="bg-secondary/50 border-gray-600 text-black font-pixel focus:border-accent"
+                  className="bg-secondary/50 border-gray-600 text-white font-pixel focus:border-accent"
                 />
                 
                 <div className="space-y-3">
@@ -128,7 +128,7 @@ export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
                 </div>
                 
                 <div className="text-center text-sm text-text-secondary">
-                  CAPITAL letters only. One-time entry at login
+                  You can enter an invite code later to get referral bonuses
                 </div>
               </div>
             </CardContent>
