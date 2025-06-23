@@ -211,7 +211,7 @@ export default function DashboardTab() {
                 <Input
                   type="text"
                   readOnly
-                  value={user?.referralCode || "Generating..."}
+                  value={user?.referralCode || "Loadinging..."}
                   className="flex-1 bg-secondary/50 border-gray-600 text-black font-mono"
                   disabled={!user?.referralCode}
                 />

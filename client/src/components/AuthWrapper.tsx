@@ -105,7 +105,7 @@ export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
                   placeholder="Enter your invite code..."
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value)}
-                  className="bg-secondary/50 border-gray-600 text-white font-pixel focus:border-accent"
+                  className="bg-secondary/50 border-gray-600 text-black font-pixel focus:border-accent"
                 />
                 
                 <div className="space-y-3">
