@@ -5,9 +5,22 @@ import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 
-// ✅ CORS Configuration
+// ✅ Allowed frontend domains
+const allowedOrigins = [
+  "https://adventureofcheems-aoc.onrender.com",
+  "https://dogbytelab.com"
+];
+
+// ✅ CORS configuration
 app.use(cors({
-  origin: "https://adventureofcheems-aoc.onrender.com", // frontend ka URL
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like curl or Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
   credentials: true,

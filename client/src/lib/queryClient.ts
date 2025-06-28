@@ -6,12 +6,18 @@ async function throwIfResNotOk(res: Response) {
     throw new Error(`${res.status}: ${text}`);
   }
 }
+
+// 🔁 Dynamically select backend URL based on frontend domain
+const backendUrl =
+  window.location.hostname === "dogbytelab.com"
+    ? "https://adventureofcheems.onrender.com"
+    : "https://adventureofcheems.onrender.com"; // Same for now, but future-proof
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const backendUrl = "https://adventureofcheems.onrender.com";
   const fullUrl = `${backendUrl}${url}`;
   const res = await fetch(fullUrl, {
     method,
@@ -25,6 +31,7 @@ export async function apiRequest(
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
+
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
