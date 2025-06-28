@@ -128,7 +128,7 @@ export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
                 </div>
                 
                 <div className="text-center text-sm text-text-secondary">
-                  You can enter an invite code later to get referral bonuses
+                  CODE CAN ONLY BE ENTERED ONCE — use wisely!
                 </div>
               </div>
             </CardContent>
