@@ -123,7 +123,7 @@ export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
                     variant="outline"
                     className="w-full bg-gray-600 hover:bg-gray-700 border-gray-600 text-white font-bold py-3"
                   >
-                    Skip for Now
+                    Skip
                   </Button>
                 </div>
                 
