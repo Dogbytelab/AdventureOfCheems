@@ -128,7 +128,7 @@ export default function AuthWrapper({ onComingSoon }: AuthWrapperProps) {
                 </div>
                 
                 <div className="text-center text-sm text-text-secondary">
-                  CODE CAN ONLY BE ENTERED ONCE — use wisely!
+                  ENTER THE CODE IN CAPITAL LETTERS — IT CAN ONLY BE USED ONCE. USE IT WISELY!
                 </div>
               </div>
             </CardContent>
